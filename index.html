@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Operations Dashboard</title>
+  <style>
+    /* Global Styles */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #001f3f; /* Navy blue background */
+      color: white;
+      display: flex;
+      height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background-color: #00264d;
+      padding-top: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar button {
+      background: none;
+      border: none;
+      color: white;
+      padding: 15px 20px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 16px;
+      border-bottom: 1px solid #004080;
+    }
+
+    .sidebar button:hover {
+      background-color: #004080;
+    }
+
+    /* Main Content */
+    .main {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    section {
+      display: none; /* Hide all sections by default */
+    }
+
+    section.active {
+      display: block;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    input, select, button.add-btn {
+      margin: 5px 0;
+      padding: 5px;
+      font-size: 14px;
+    }
+
+    button.add-btn {
+      background-color: #0074D9;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+
+    button.add-btn:hover {
+      background-color: #005fa3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      color: white;
+    }
+
+    table, th, td {
+      border: 1px solid white;
+    }
+
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+
+    .off-duty-btn {
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .off-duty-btn:hover {
+      background-color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <button onclick="showSection('dashboard')">Dashboard</button>
+    <button onclick="showSection('incidents')">Active Incidents</button>
+    <button onclick="showSection('onduty')">On Duty</button>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- Dashboard Section -->
+    <section id="dashboard" class="active">
+      <h2>Dashboard</h2>
+
+      <h3>On/Off Duty</h3>
+      <button onclick="alert('You are now ON duty!')">Go On Duty</button>
+      <button onclick="alert('You are now OFF duty!')">Go Off Duty</button>
+
+      <h3>Vehicle Plate Searches</h3>
+      <input type="text" id="plateInput" placeholder="Enter vehicle plate">
+      <button onclick="searchPlate()">Search</button>
+
+      <h3>Watchlist</h3>
+      <input type="text" id="vehicleReg" placeholder="Registration">
+      <input type="text" id="vehicleDetails" placeholder="Vehicle details">
+      <button class="add-btn" onclick="addVehicle()">Add to Watchlist</button>
+
+      <table id="vehicleTable">
+        <tr><th>Registration</th><th>Details</th></tr>
+      </table>
+    </section>
+
+    <!-- Active Incidents Section -->
+    <section id="incidents">
+      <h2>Active Incidents</h2>
+      <input type="text" id="incidentAddress" placeholder="Address of incident">
+      <input type="text" id="incidentType" placeholder="Type (Fire, Robbery, Medical)">
+      <input type="text" id="onScene" placeholder="Personnel on scene">
+      <button class="add-btn" onclick="addIncident()">Add Incident</button>
+
+      <table id="incidentTable">
+        <tr><th>Address</th><th>Type</th><th>On Scene</th><th>Action</th></tr>
+      </table>
+    </section>
+
+    <!-- On Duty Section -->
+    <section id="onduty">
+      <h2>Personnel On Duty</h2>
+      <table id="onDutyTable">
+        <tr><th>Name</th><th>Contact</th></tr>
+        <tr><td>John Doe</td><td>+123456789</td></tr>
+        <tr><td>Jane Smith</td><td>+987654321</td></tr>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    // Switch between sections
+    function showSection(sectionId) {
+      document.querySelectorAll('section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+    }
+
+    // Add vehicle to watchlist
+    function addVehicle() {
+      const reg = document.getElementById('vehicleReg').value;
+      const details = document.getElementById('vehicleDetails').value;
+      if (reg && details) {
+        const table = document.getElementById('vehicleTable');
+        const row = table.insertRow();
+        row.insertCell(0).innerText = reg;
+        row.insertCell(1).innerText = details;
+        document.getElementById('vehicleReg').value = '';
+        document.getElementById('vehicleDetails').value = '';
+      }
+    }
+
+    // Search plate (placeholder functionality)
+    function searchPlate() {
+      const plate = document.getElementById('plateInput').value;
+      if (plate) {
+        alert(`Searching for vehicle: ${plate}`);
+        document.getElementById('plateInput').value = '';
+      }
+    }
+
+    // Add incident
+    function addIncident() {
+      const address = document.getElementById('incidentAddress').value;
+      const type = document.getElementById('incidentType').value;
+      const personnel = document.getElementById('onScene').value;
+
+      if (address && type && personnel) {
+        const table = document.getElementById('incidentTable');
+        const row = table.insertRow();
+        row.insertCell(0).innerText = address;
+        row.insertCell(1).innerText = type;
+        row.insertCell(2).innerText = personnel;
+        const actionCell = row.insertCell(3);
+        const offDutyBtn = document.createElement('button');
+        offDutyBtn.className = 'off-duty-btn';
+        offDutyBtn.innerText = 'Stand Off';
+        offDutyBtn.onclick = () => {
+          alert(`${personnel} is now standing off from ${address}`);
+          row.remove();
+        };
+        actionCell.appendChild(offDutyBtn);
+
+        document.getElementById('incidentAddress').value = '';
+        document.getElementById('incidentType').value = '';
+        document.getElementById('onScene').value = '';
+      }
+    }
+  </script>
+</body>
+</html>
