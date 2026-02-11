@@ -2,134 +2,82 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Emergency Operations Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="manifest" href="manifest.json">
 
 <style>
-body {
-    margin: 0;
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: #001f3f;
-    color: white;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+:root{
+--bg:#001f3f;--panel:#00264d;--card:#003366;--text:white;
+}
+body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);}
+.light{--bg:#f4f6f8;--panel:#fff;--card:#e9ecef;--text:#000;}
+
+.header{
+position:sticky;top:0;display:flex;align-items:center;
+background:var(--panel);padding:10px 20px;z-index:100;
+border-bottom:2px solid #004080;
+}
+.header h1{margin:0;font-size:22px;}
+.header button{margin-left:auto;padding:6px 10px;}
+
+.container{display:flex;height:calc(100vh - 60px);}
+.sidebar{
+width:240px;background:var(--panel);display:flex;flex-direction:column;
+}
+.sidebar button{
+padding:16px;border:none;background:none;color:inherit;
+text-align:left;font-size:16px;cursor:pointer;
+border-bottom:1px solid #004080;
+}
+.sidebar button:hover{background:#004080;}
+
+.main{flex:1;padding:20px;overflow-y:auto;}
+section{display:none;}
+section.active{display:block;}
+
+.card{
+background:var(--card);padding:14px;border-radius:10px;margin:10px 0;
+}
+.completed{opacity:0.5;}
+
+input,select,textarea{
+width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;
 }
 
-.header {
-    position: sticky;
-    top: 0;
-    background: #00264d;
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    border-bottom: 2px solid #004080;
-    z-index: 100;
+button.action{
+padding:10px 14px;background:#0074D9;color:white;
+border:none;border-radius:5px;cursor:pointer;margin-top:6px;
+}
+button.action:hover{background:#005fa3;}
+
+.status-btn{
+padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;
+cursor:pointer;
+}
+.Responding{background:orange;}
+.InProgress{background:#0074D9;}
+.StandingOff{background:red;}
+.Completed{background:green;}
+.All{background:#555;}
+
+.tab-active{box-shadow:0 0 10px rgba(255,255,255,0.9);}
+
+.timer{
+font-size:20px;font-weight:bold;padding:4px 8px;border-radius:6px;
+display:inline-block;margin:5px 0;
 }
 
-.header img {
-    width: 45px;
-    margin-right: 12px;
-}
+.sev-Low{background:#2ecc71;padding:4px;border-radius:4px;}
+.sev-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
+.sev-High{background:#e67e22;padding:4px;border-radius:4px;}
+.sev-Critical{background:#e74c3c;padding:4px;border-radius:4px;}
 
-.header h1 {
-    font-size: 22px;
-    margin: 0;
-}
-
-.container {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-.sidebar {
-    width: 260px;
-    background: #00264d;
-    display: flex;
-    flex-direction: column;
-}
-
-.sidebar button {
-    background: none;
-    border: none;
-    color: white;
-    padding: 18px;
-    text-align: left;
-    font-size: 17px;
-    cursor: pointer;
-    border-bottom: 1px solid #004080;
-}
-
-.sidebar button:hover {
-    background: #004080;
-}
-
-.main {
-    flex: 1;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-section { display: none; }
-section.active { display: block; }
-
-.card {
-    background: #003366;
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 10px;
-}
-
-.card.completed { opacity: 0.5; }
-
-input, select, textarea {
-    width: 100%;
-    padding: 8px;
-    margin: 6px 0;
-    border-radius: 4px;
-    border: none;
-}
-
-button.action {
-    padding: 10px 14px;
-    margin-top: 6px;
-    background: #0074D9;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-button.action:hover { background: #005fa3; }
-
-.status-btn {
-    padding: 6px 10px;
-    border: none;
-    margin: 4px 3px 0 0;
-    color: white;
-    cursor: pointer;
-    border-radius: 4px;
-}
-
-.Responding { background: orange; }
-.InProgress { background: #0074D9; }
-.StandingOff { background: red; }
-.Completed { background: green; }
-
-.timer {
-    font-size: 20px;
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 6px;
-}
-
-a { color: #66b3ff; }
-
-#map {
-    width: 100%;
-    height: 450px;
-    border-radius: 10px;
+@media print{
+body{background:white;color:black;}
+.sidebar,.header,button{display:none;}
+.card{page-break-inside:avoid;}
 }
 </style>
 </head>
@@ -137,8 +85,8 @@ a { color: #66b3ff; }
 <body>
 
 <div class="header">
-<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Blue_alert_logo.png/1200px-Blue_alert_logo.png">
 <h1>Emergency Operations Dashboard</h1>
+<button onclick="toggleTheme()">🌗 Theme</button>
 </div>
 
 <div class="container">
@@ -147,194 +95,193 @@ a { color: #66b3ff; }
 <button onclick="show('login')">Sign In</button>
 <button onclick="show('dashboard')">Dashboard</button>
 <button onclick="show('incidents')">Active Incidents</button>
-<button onclick="show('contacts')">On Duty</button>
-<button onclick="show('mapView')">Map</button>
 <button onclick="show('reports')">Reports</button>
+<button onclick="show('handover')">Shift Handover</button>
 </div>
 
 <div class="main">
 
 <section id="login">
-<h2>Responder Sign In</h2>
+<h2>Sign In</h2>
 <input id="name" placeholder="Name">
 <input id="number" placeholder="Contact Number">
-<input id="carColor" placeholder="Vehicle Color">
-<input id="carReg" placeholder="Vehicle Registration">
-<input id="driving" placeholder="Vehicle Being Driven">
+<input id="vehicle" placeholder="Vehicle (Color / Reg)">
+<select id="role">
+<option value="Responder">Responder</option>
+<option value="Admin">Admin</option>
+</select>
 <button class="action" onclick="signIn()">Sign In</button>
 </section>
 
 <section id="dashboard">
 <h2>Dashboard</h2>
-<button class="action" onclick="startPursuit()">🚨 In Pursuit</button>
-<h3>On Duty</h3>
 <div id="dutyList"></div>
-<h3>Recent Incidents</h3>
-<div id="recent"></div>
 </section>
 
 <section id="incidents">
 <h2>Active Incidents</h2>
 
 <input id="address" placeholder="Address">
-<select id="category" onchange="updateTypes()">
-<option value="">Category</option>
-<option>Crime</option>
-<option>Fire</option>
-<option>Medical</option>
+<select id="severity">
+<option>Low</option><option>Medium</option>
+<option>High</option><option>Critical</option>
 </select>
-
-<select id="type"></select>
-<input id="cos" placeholder="Contact On Scene (COS)">
+<input id="cos" placeholder="Contact On Scene">
 <button class="action" onclick="addIncident()">Add Incident</button>
+
+<div style="margin:10px 0;">
+<button class="status-btn Responding tab-active" id="tabResponding" onclick="filterStatus('Responding')">Responding</button>
+<button class="status-btn InProgress" id="tabInProgress" onclick="filterStatus('InProgress')">In Progress</button>
+<button class="status-btn StandingOff" id="tabStandingOff" onclick="filterStatus('StandingOff')">Standing Off</button>
+<button class="status-btn Completed" id="tabCompleted" onclick="filterStatus('Completed')">Completed</button>
+<button class="status-btn All" id="tabAll" onclick="filterStatus('')">All</button>
+</div>
 
 <div id="incidentList"></div>
 </section>
 
-<section id="contacts">
-<h2>Responders On Duty</h2>
-<div id="contactsList"></div>
-</section>
-
-<section id="mapView">
-<h2>Incident Map</h2>
-<div id="map"></div>
-</section>
-
 <section id="reports">
 <h2>Incident Reports</h2>
+<button class="action" onclick="exportCSV()">Export CSV</button>
+<button class="action" onclick="window.print()">Print</button>
 <div id="reportList"></div>
 </section>
 
+<section id="handover">
+<h2>Shift Handover Summary</h2>
+<button class="action" onclick="window.print()">Print Summary</button>
+<div id="handoverContent"></div>
+</section>
+
 </div>
 </div>
-
-<audio id="siren" src="https://www.soundjay.com/transport/siren-01.wav"></audio>
-
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-
-const types = {
-    Crime:["House Robbery","Motor Vehicle Theft","Suspicious Activity"],
-    Fire:["House Fire","Field Fire","Car Fire"],
-    Medical:["Motor Vehicle Accident","Home Accident","Patient Check"]
-};
+let activeFilter="",currentUser={};
 
 function show(id){
-    document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-    document.getElementById(id).classList.add("active");
+document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
-window.show = show;
 
-function store(k,v){ localStorage.setItem(k,JSON.stringify(v)); }
-function load(k){ return JSON.parse(localStorage.getItem(k)) || []; }
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function load(k){return JSON.parse(localStorage.getItem(k))||[];}
 
-window.signIn = () => {
-    const r = {
-        name:name.value,
-        number:number.value,
-        car:`${carColor.value} ${carReg.value}`,
-        driving:driving.value
-    };
-    const d = load("duty"); d.push(r); store("duty",d);
-    renderDuty();
-    show("dashboard");
-};
+function toggleTheme(){
+document.body.classList.toggle("light");
+localStorage.setItem("theme",document.body.classList.contains("light")?"light":"dark");
+}
+if(localStorage.getItem("theme")==="light")document.body.classList.add("light");
 
-window.startPursuit = () => {
-    document.getElementById("siren").play();
-    setTimeout(()=>{ document.getElementById("siren").pause(); },2000);
-};
+function signIn(){
+currentUser={name:name.value,number:number.value,vehicle:vehicle.value,role:role.value};
+save("user",currentUser);
+renderDuty();
+show("dashboard");
+}
 
-window.updateTypes = () => {
-    type.innerHTML="";
-    (types[category.value]||[]).forEach(t=>{
-        const o=document.createElement("option"); o.text=t; type.add(o);
-    });
-};
-
-window.addIncident = () => {
-    const i = {
-        id:Date.now(),
-        address:address.value,
-        category:category.value,
-        type:type.value,
-        cos:cos.value,
-        status:"Responding",
-        start:Date.now(),
-        elapsed:0,
-        report:""
-    };
-    const list=load("incidents"); list.push(i); store("incidents",list);
-    renderIncidents(); renderMap();
-};
+function addIncident(){
+const list=load("incidents");
+list.push({
+id:Date.now(),
+address:address.value,
+severity:severity.value,
+cos:cos.value,
+status:"Responding",
+start:Date.now(),
+elapsed:0
+});
+save("incidents",list);
+renderIncidents();
+}
 
 function updateStatus(id,s){
-    const list=load("incidents");
-    const i=list.find(x=>x.id===id);
-    if(i.status!=="StandingOff") i.elapsed+=Date.now()-i.start;
-    i.status=s;
-    i.start=Date.now();
-    store("incidents",list);
-    renderIncidents(); renderReports();
+const list=load("incidents");
+const i=list.find(x=>x.id===id);
+
+if(s==="Completed" && currentUser.role!=="Admin"){
+alert("Admin only can complete incidents");
+return;
+}
+if(s==="Completed" && !confirm("Confirm complete incident?"))return;
+
+if(i.status!=="StandingOff")i.elapsed+=Date.now()-i.start;
+i.status=s;i.start=Date.now();
+
+save("incidents",list);
+if(s==="Completed")filterStatus("Completed");
+renderIncidents();renderReports();renderHandover();
+}
+
+function filterStatus(s){
+activeFilter=s;
+document.querySelectorAll("[id^='tab']").forEach(t=>t.classList.remove("tab-active"));
+document.getElementById("tab"+(s||"All")).classList.add("tab-active");
+renderIncidents();
 }
 
 function renderIncidents(){
-    incidentList.innerHTML="";
-    load("incidents").forEach(i=>{
-        const t=i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
-        const c=document.createElement("div");
-        c.className="card "+(i.status==="Completed"?"completed":"");
-        c.innerHTML=`
-        <b>${i.address}</b> (${i.category} - ${i.type})<br>
-        COS: ${i.cos}<br>
-        <span class="timer ${i.status}">${new Date(t).toISOString().substr(11,8)}</span><br>
-        <a target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Google Maps</a><br>
-        <button class="status-btn Responding" onclick="updateStatus(${i.id},'Responding')">Responding</button>
-        <button class="status-btn InProgress" onclick="updateStatus(${i.id},'InProgress')">In Progress</button>
-        <button class="status-btn StandingOff" onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
-        <button class="status-btn Completed" onclick="updateStatus(${i.id},'Completed')">Completed</button>
-        `;
-        incidentList.appendChild(c);
-    });
+incidentList.innerHTML="";
+const list=load("incidents");
+list.filter(i=>!activeFilter||i.status===activeFilter).forEach(i=>{
+const t=i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
+const c=document.createElement("div");
+c.className="card "+(i.status==="Completed"?"completed":"");
+c.innerHTML=`
+<b>${i.address}</b> 
+<span class="sev-${i.severity}">${i.severity}</span><br>
+COS: ${i.cos}<br>
+<span class="timer ${i.status}">${new Date(t).toISOString().substr(11,8)}</span><br>
+<button class="status-btn Responding" onclick="updateStatus(${i.id},'Responding')">Responding</button>
+<button class="status-btn InProgress" onclick="updateStatus(${i.id},'InProgress')">In Progress</button>
+<button class="status-btn StandingOff" onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="updateStatus(${i.id},'Completed')">Completed</button>
+`;
+incidentList.appendChild(c);
+});
 }
 
 function renderDuty(){
-    dutyList.innerHTML="";
-    contactsList.innerHTML="";
-    load("duty").forEach(d=>{
-        const c=document.createElement("div");
-        c.className="card";
-        c.innerText=`${d.name} | ${d.number} | ${d.car} | Driving: ${d.driving}`;
-        dutyList.appendChild(c.cloneNode(true));
-        contactsList.appendChild(c);
-    });
+dutyList.innerHTML=`<div class="card">${currentUser.name} | ${currentUser.vehicle} | ${currentUser.role}</div>`;
 }
 
 function renderReports(){
-    reportList.innerHTML="";
-    load("incidents").filter(i=>i.status==="Completed").forEach(i=>{
-        const r=document.createElement("div");
-        r.className="card";
-        r.innerHTML=`<b>${i.address}</b><br>Time on scene: ${new Date(i.elapsed).toISOString().substr(11,8)}`;
-        reportList.appendChild(r);
-    });
+reportList.innerHTML="";
+load("incidents").filter(i=>i.status==="Completed").forEach(i=>{
+const r=document.createElement("div");
+r.className="card";
+r.innerHTML=`<b>${i.address}</b><br>Time: ${new Date(i.elapsed).toISOString().substr(11,8)}`;
+reportList.appendChild(r);
+});
 }
 
-function renderMap(){
-    const map=new google.maps.Map(document.getElementById("map"),{zoom:10,center:{lat:-26.2,lng:28.0}});
-    load("incidents").forEach(i=>{
-        new google.maps.Marker({map,map,title:i.address});
-    });
+function renderHandover(){
+handoverContent.innerHTML="";
+const i=load("incidents");
+handoverContent.innerHTML=`
+<div class="card">
+<b>On Duty:</b> ${currentUser.name} (${currentUser.vehicle})<br>
+<b>Active:</b> ${i.filter(x=>x.status!=="Completed").length}<br>
+<b>Completed:</b> ${i.filter(x=>x.status==="Completed").length}
+</div>`;
+}
+
+function exportCSV(){
+let csv="Address,Severity,Status,Time\n";
+load("incidents").filter(i=>i.status==="Completed").forEach(i=>{
+csv+=`${i.address},${i.severity},${i.status},${new Date(i.elapsed).toISOString().substr(11,8)}\n`;
+});
+const blob=new Blob([csv],{type:"text/csv"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="incident_reports.csv";
+a.click();
 }
 
 show("login");
-renderDuty();
 renderIncidents();
 renderReports();
-});
+renderHandover();
 </script>
 
 </body>
