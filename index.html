@@ -5,6 +5,8 @@
 <title>Emergency Operations Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<link rel="manifest" href="manifest.json">
+
 <style>
 :root{
 --bg:#001f3f;--panel:#00264d;--card:#003366;--text:white;
@@ -13,15 +15,17 @@ body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);
 .light{--bg:#f4f6f8;--panel:#fff;--card:#e9ecef;--text:#000;}
 
 .header{
-position:sticky;top:0;background:var(--panel);
-padding:12px 20px;display:flex;align-items:center;
-border-bottom:2px solid #004080;z-index:100;
+position:sticky;top:0;display:flex;align-items:center;
+background:var(--panel);padding:10px 20px;z-index:100;
+border-bottom:2px solid #004080;
 }
 .header h1{margin:0;font-size:22px;}
-.header button{margin-left:auto;}
+.header button{margin-left:auto;padding:6px 10px;}
 
 .container{display:flex;height:calc(100vh - 60px);}
-.sidebar{width:240px;background:var(--panel);display:flex;flex-direction:column;}
+.sidebar{
+width:240px;background:var(--panel);display:flex;flex-direction:column;
+}
 .sidebar button{
 padding:16px;border:none;background:none;color:inherit;
 text-align:left;font-size:16px;cursor:pointer;
@@ -39,36 +43,42 @@ background:var(--card);padding:14px;border-radius:10px;margin:10px 0;
 .completed{opacity:0.5;}
 
 input,select,textarea{
-width:100%;padding:8px;margin:6px 0;border-radius:4px;border:none;
+width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;
 }
 
 button.action{
 padding:10px 14px;background:#0074D9;color:white;
-border:none;border-radius:5px;cursor:pointer;
+border:none;border-radius:5px;cursor:pointer;margin-top:6px;
 }
 button.action:hover{background:#005fa3;}
 
 .status-btn{
-padding:6px 10px;border:none;border-radius:4px;margin:4px 2px;
-color:white;cursor:pointer;
+padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;
+cursor:pointer;
 }
 .Responding{background:orange;}
 .InProgress{background:#0074D9;}
 .StandingOff{background:red;}
 .Completed{background:green;}
+.All{background:#555;}
+
+.tab-active{box-shadow:0 0 10px rgba(255,255,255,0.9);}
 
 .timer{
-font-size:22px;font-weight:bold;padding:4px 8px;border-radius:6px;
-display:inline-block;margin:6px 0;
+font-size:20px;font-weight:bold;padding:4px 8px;border-radius:6px;
+display:inline-block;margin:5px 0;
 }
 
-.pr-Low{background:#2ecc71;padding:4px;border-radius:4px;}
-.pr-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
-.pr-High{background:#e67e22;padding:4px;border-radius:4px;}
-.pr-Critical{background:#e74c3c;padding:4px;border-radius:4px;}
+.sev-Low{background:#2ecc71;padding:4px;border-radius:4px;}
+.sev-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
+.sev-High{background:#e67e22;padding:4px;border-radius:4px;}
+.sev-Critical{background:#e74c3c;padding:4px;border-radius:4px;}
 
-textarea{min-height:80px;}
-a{color:#66b3ff;}
+@media print{
+body{background:white;color:black;}
+.sidebar,.header,button{display:none;}
+.card{page-break-inside:avoid;}
+}
 </style>
 </head>
 
@@ -82,258 +92,196 @@ a{color:#66b3ff;}
 <div class="container">
 
 <div class="sidebar">
-<button onclick="showSection('login')">Sign In</button>
-<button onclick="showSection('incidents')">Active Incidents</button>
-<button onclick="showSection('reports')">Incident Reports</button>
+<button onclick="show('login')">Sign In</button>
+<button onclick="show('dashboard')">Dashboard</button>
+<button onclick="show('incidents')">Active Incidents</button>
+<button onclick="show('reports')">Reports</button>
+<button onclick="show('handover')">Shift Handover</button>
 </div>
 
 <div class="main">
 
 <section id="login">
-<h2>Responder Sign In</h2>
-<input id="responderName" placeholder="Name">
-<select id="userRole">
+<h2>Sign In</h2>
+<input id="name" placeholder="Name">
+<input id="number" placeholder="Contact Number">
+<input id="vehicle" placeholder="Vehicle (Color / Reg)">
+<select id="role">
 <option value="Responder">Responder</option>
 <option value="Admin">Admin</option>
 </select>
 <button class="action" onclick="signIn()">Sign In</button>
 </section>
 
+<section id="dashboard">
+<h2>Dashboard</h2>
+<div id="dutyList"></div>
+</section>
+
 <section id="incidents">
 <h2>Active Incidents</h2>
 
-<input id="address" placeholder="Incident Address">
-
-<select id="incidentType">
-<option value="">Select Type</option>
-<option value="Crime">Crime</option>
-<option value="Fire">Fire</option>
-<option value="Medical">Medical</option>
+<input id="address" placeholder="Address">
+<select id="severity">
+<option>Low</option><option>Medium</option>
+<option>High</option><option>Critical</option>
 </select>
+<input id="cos" placeholder="Contact On Scene">
+<button class="action" onclick="addIncident()">Add Incident</button>
 
-<select id="priority">
-<option value="">Priority</option>
-<option>Low</option>
-<option>Medium</option>
-<option>High</option>
-<option>Critical</option>
-</select>
-
-<input id="cos" placeholder="Contact On Scene (COS)">
-
-<button class="action" onclick="addIncident()">Create Incident</button>
-
-<hr>
+<div style="margin:10px 0;">
+<button class="status-btn Responding tab-active" id="tabResponding" onclick="filterStatus('Responding')">Responding</button>
+<button class="status-btn InProgress" id="tabInProgress" onclick="filterStatus('InProgress')">In Progress</button>
+<button class="status-btn StandingOff" id="tabStandingOff" onclick="filterStatus('StandingOff')">Standing Off</button>
+<button class="status-btn Completed" id="tabCompleted" onclick="filterStatus('Completed')">Completed</button>
+<button class="status-btn All" id="tabAll" onclick="filterStatus('')">All</button>
+</div>
 
 <div id="incidentList"></div>
 </section>
 
 <section id="reports">
 <h2>Incident Reports</h2>
+<button class="action" onclick="exportCSV()">Export CSV</button>
+<button class="action" onclick="window.print()">Print</button>
 <div id="reportList"></div>
+</section>
+
+<section id="handover">
+<h2>Shift Handover Summary</h2>
+<button class="action" onclick="window.print()">Print Summary</button>
+<div id="handoverContent"></div>
 </section>
 
 </div>
 </div>
 
-<audio id="crimeSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
-<audio id="fireSound" src="https://www.soundjay.com/transport/fire-truck-horn.wav"></audio>
-<audio id="medicalSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
-
 <script>
-/* ---------- UTILITIES ---------- */
-function showSection(id){
+let activeFilter="",currentUser={};
+
+function show(id){
 document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
 }
 
-function save(k,v){
-localStorage.setItem(k,JSON.stringify(v));
-}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function load(k){return JSON.parse(localStorage.getItem(k))||[];}
 
-function load(k){
-return JSON.parse(localStorage.getItem(k)) || [];
-}
-
-/* ---------- THEME ---------- */
 function toggleTheme(){
 document.body.classList.toggle("light");
 localStorage.setItem("theme",document.body.classList.contains("light")?"light":"dark");
 }
 if(localStorage.getItem("theme")==="light")document.body.classList.add("light");
 
-/* ---------- AUTH ---------- */
-let currentUser = load("user") || {};
-
 function signIn(){
-const nameInput = document.getElementById("responderName");
-const roleInput = document.getElementById("userRole");
-
-if(!nameInput.value){
-alert("Please enter your name");
-return;
+currentUser={name:name.value,number:number.value,vehicle:vehicle.value,role:role.value};
+save("user",currentUser);
+renderDuty();
+show("dashboard");
 }
 
-currentUser = {
-name: nameInput.value,
-role: roleInput.value
-};
-
-save("user", currentUser);
-showSection("incidents");
-}
-
-/* ---------- SOUND ---------- */
-function playSound(type){
-if(type==="Crime")document.getElementById("crimeSound").play();
-if(type==="Fire")document.getElementById("fireSound").play();
-if(type==="Medical")document.getElementById("medicalSound").play();
-}
-
-/* ---------- INCIDENTS ---------- */
 function addIncident(){
-
-const address = document.getElementById("address");
-const incidentType = document.getElementById("incidentType");
-const priority = document.getElementById("priority");
-const cos = document.getElementById("cos");
-
-if(!address.value || !incidentType.value || !priority.value || !cos.value){
-alert("Please fill in ALL incident fields.");
-return;
-}
-
-const incident = {
-id: Date.now(),
-address: address.value,
-type: incidentType.value,
-priority: priority.value,
-cos: cos.value,
-status: "Responding",
-start: Date.now(),
-elapsed: 0,
-report: ""
-};
-
-const list = load("incidents");
-list.push(incident);
-save("incidents", list);
-
-playSound(incident.type);
-
-address.value="";
-cos.value="";
-
-renderIncidents();
-}
-
-function updateStatus(id,status){
-
-const list = load("incidents");
-const i = list.find(x=>x.id===id);
-
-if(status==="Completed"){
-if(currentUser.role!=="Admin"){
-alert("Admin approval required.");
-return;
-}
-if(!confirm("Confirm incident completed?"))return;
-}
-
-if(i.status!=="StandingOff"){
-i.elapsed += Date.now()-i.start;
-}
-
-i.status=status;
-i.start=Date.now();
-
+const list=load("incidents");
+list.push({
+id:Date.now(),
+address:address.value,
+severity:severity.value,
+cos:cos.value,
+status:"Responding",
+start:Date.now(),
+elapsed:0
+});
 save("incidents",list);
 renderIncidents();
-renderReports();
 }
 
-function saveReport(id,text){
-const list = load("incidents");
-list.find(i=>i.id===id).report=text;
+function updateStatus(id,s){
+const list=load("incidents");
+const i=list.find(x=>x.id===id);
+
+if(s==="Completed" && currentUser.role!=="Admin"){
+alert("Admin only can complete incidents");
+return;
+}
+if(s==="Completed" && !confirm("Confirm complete incident?"))return;
+
+if(i.status!=="StandingOff")i.elapsed+=Date.now()-i.start;
+i.status=s;i.start=Date.now();
+
 save("incidents",list);
-renderReports();
+if(s==="Completed")filterStatus("Completed");
+renderIncidents();renderReports();renderHandover();
+}
+
+function filterStatus(s){
+activeFilter=s;
+document.querySelectorAll("[id^='tab']").forEach(t=>t.classList.remove("tab-active"));
+document.getElementById("tab"+(s||"All")).classList.add("tab-active");
+renderIncidents();
 }
 
 function renderIncidents(){
-
-const incidentList = document.getElementById("incidentList");
 incidentList.innerHTML="";
-
-load("incidents").forEach(i=>{
-
-const t = i.status==="StandingOff"
-? i.elapsed
-: i.elapsed + (Date.now()-i.start);
-
-const c = document.createElement("div");
+const list=load("incidents");
+list.filter(i=>!activeFilter||i.status===activeFilter).forEach(i=>{
+const t=i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
+const c=document.createElement("div");
 c.className="card "+(i.status==="Completed"?"completed":"");
-
 c.innerHTML=`
-<b>${i.address}</b><br>
-Type: ${i.type} | <span class="pr-${i.priority}">${i.priority}</span><br>
+<b>${i.address}</b> 
+<span class="sev-${i.severity}">${i.severity}</span><br>
 COS: ${i.cos}<br>
-<span class="timer ${i.status}">
-${new Date(t).toISOString().substr(11,8)}
-</span><br>
-<a target="_blank"
-href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">
-Open Map</a><br>
-
-<button class="status-btn Responding"
-onclick="updateStatus(${i.id},'Responding')">Responding</button>
-
-<button class="status-btn InProgress"
-onclick="updateStatus(${i.id},'InProgress')">In Progress</button>
-
-<button class="status-btn StandingOff"
-onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
-
-<button class="status-btn Completed"
-onclick="updateStatus(${i.id},'Completed')">Completed</button>
-
-<textarea placeholder="Incident Report..."
-onchange="saveReport(${i.id},this.value)">
-${i.report||""}
-</textarea>
+<span class="timer ${i.status}">${new Date(t).toISOString().substr(11,8)}</span><br>
+<button class="status-btn Responding" onclick="updateStatus(${i.id},'Responding')">Responding</button>
+<button class="status-btn InProgress" onclick="updateStatus(${i.id},'InProgress')">In Progress</button>
+<button class="status-btn StandingOff" onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="updateStatus(${i.id},'Completed')">Completed</button>
 `;
-
 incidentList.appendChild(c);
 });
 }
 
+function renderDuty(){
+dutyList.innerHTML=`<div class="card">${currentUser.name} | ${currentUser.vehicle} | ${currentUser.role}</div>`;
+}
+
 function renderReports(){
-
-const reportList = document.getElementById("reportList");
 reportList.innerHTML="";
-
-load("incidents")
-.filter(i=>i.status==="Completed")
-.forEach(i=>{
+load("incidents").filter(i=>i.status==="Completed").forEach(i=>{
 const r=document.createElement("div");
 r.className="card";
-r.innerHTML=`
-<b>${i.address}</b><br>
-${i.report||"No report submitted"}<br>
-Time on scene: ${new Date(i.elapsed).toISOString().substr(11,8)}
-`;
+r.innerHTML=`<b>${i.address}</b><br>Time: ${new Date(i.elapsed).toISOString().substr(11,8)}`;
 reportList.appendChild(r);
 });
 }
 
-/* ---------- INIT ---------- */
-if(currentUser.name){
-showSection("incidents");
-}else{
-showSection("login");
+function renderHandover(){
+handoverContent.innerHTML="";
+const i=load("incidents");
+handoverContent.innerHTML=`
+<div class="card">
+<b>On Duty:</b> ${currentUser.name} (${currentUser.vehicle})<br>
+<b>Active:</b> ${i.filter(x=>x.status!=="Completed").length}<br>
+<b>Completed:</b> ${i.filter(x=>x.status==="Completed").length}
+</div>`;
 }
 
+function exportCSV(){
+let csv="Address,Severity,Status,Time\n";
+load("incidents").filter(i=>i.status==="Completed").forEach(i=>{
+csv+=`${i.address},${i.severity},${i.status},${new Date(i.elapsed).toISOString().substr(11,8)}\n`;
+});
+const blob=new Blob([csv],{type:"text/csv"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="incident_reports.csv";
+a.click();
+}
+
+show("login");
 renderIncidents();
 renderReports();
+renderHandover();
 </script>
 
 </body>
