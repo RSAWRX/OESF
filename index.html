@@ -1,93 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Emergency Operations Dashboard</title>
+<title>Live Dispatch System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root{
---bg:#001f3f;--panel:#00264d;--card:#003366;--text:white;
-}
-body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);}
-.light{--bg:#f4f6f8;--panel:#fff;--card:#e9ecef;--text:#000;}
-
-.header{
-position:sticky;top:0;display:flex;align-items:center;
-background:var(--panel);padding:10px 20px;z-index:100;
-border-bottom:2px solid #004080;
-}
-.header h1{margin:0;font-size:22px;}
-.header button{margin-left:auto;padding:6px 10px;}
-
-.container{display:flex;height:calc(100vh - 60px);}
-.sidebar{
-width:240px;background:var(--panel);display:flex;flex-direction:column;
-}
-.sidebar button{
-padding:16px;border:none;background:none;color:inherit;
-text-align:left;font-size:16px;cursor:pointer;
-border-bottom:1px solid #004080;
-}
-.sidebar button:hover{background:#004080;}
-
-.main{flex:1;padding:20px;overflow-y:auto;}
-section{display:none;}
-section.active{display:block;}
-
-.card{
-background:var(--card);padding:14px;border-radius:10px;margin:10px 0;
-}
-.completed{opacity:0.5;}
-
-input,select{
-width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;
-}
-
-button.action{
-padding:10px 14px;background:#0074D9;color:white;
-border:none;border-radius:5px;cursor:pointer;margin-top:6px;
-}
-button.action:hover{background:#005fa3;}
-
-.status-btn{
-padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;
-cursor:pointer;
-}
-.Responding{background:orange;}
-.InProgress{background:#0074D9;}
-.StandingOff{background:red;}
-.Completed{background:green;}
-.All{background:#555;}
-
-.tab-active{box-shadow:0 0 10px rgba(255,255,255,0.9);}
-
-.timer{
-font-size:18px;font-weight:bold;padding:4px 8px;border-radius:6px;
-display:inline-block;margin:5px 0;
-}
-
-.sev-Low{background:#2ecc71;padding:4px;border-radius:4px;}
-.sev-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
-.sev-High{background:#e67e22;padding:4px;border-radius:4px;}
-.sev-Critical{background:#e74c3c;padding:4px;border-radius:4px;}
+body{margin:0;font-family:Segoe UI;background:#0b1e35;color:white}
+header{background:#132c4d;padding:15px;font-size:20px}
+.container{display:flex;height:100vh}
+.sidebar{width:250px;background:#132c4d;padding:10px}
+.sidebar button{width:100%;margin:5px 0;padding:10px;background:#1f3f66;border:none;color:white;cursor:pointer}
+.sidebar button:hover{background:#29598f}
+.main{flex:1;padding:20px;overflow:auto}
+.card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px}
+select,input{width:100%;padding:6px;margin:4px 0}
+button.action{background:#0074D9;color:white;border:none;padding:8px;margin-top:6px;cursor:pointer}
+.status{font-weight:bold}
+.available{color:#2ecc71}
+.enroute{color:#f1c40f}
+.onscene{color:#e67e22}
+.busy{color:#e74c3c}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<h1>Emergency Operations Dashboard</h1>
-<button onclick="toggleTheme()">🌗 Theme</button>
-</div>
+<header>🔥 Live Emergency Dispatch</header>
 
 <div class="container">
 
 <div class="sidebar">
 <button onclick="show('login')">Sign In</button>
-<button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('incidents')">Active Incidents</button>
-<button onclick="show('reports')">Reports</button>
+<button onclick="show('units')">Units</button>
+<button onclick="show('incidents')">Incidents</button>
 </div>
 
 <div class="main">
@@ -95,215 +41,125 @@ display:inline-block;margin:5px 0;
 <section id="login">
 <h2>Sign In</h2>
 <input id="name" placeholder="Name">
-<input id="number" placeholder="Contact Number">
-<input id="vehicle" placeholder="Vehicle">
+<input id="registration" placeholder="Unit Registration">
 <select id="role">
 <option value="Responder">Responder</option>
-<option value="Admin">Admin</option>
+<option value="Dispatcher">Dispatcher</option>
 </select>
 <button class="action" onclick="signIn()">Sign In</button>
 </section>
 
-<section id="dashboard">
-<h2>Dashboard</h2>
-<div id="dutyList"></div>
+<section id="units" style="display:none">
+<h2>Active Units</h2>
+<div id="unitList"></div>
 </section>
 
-<section id="incidents">
-<h2>Active Incidents</h2>
-
+<section id="incidents" style="display:none">
+<h2>Create Incident</h2>
 <input id="address" placeholder="Address">
-<select id="severity">
-<option value="Low">Low</option>
-<option value="Medium">Medium</option>
-<option value="High">High</option>
-<option value="Critical">Critical</option>
+<select id="priority">
+<option>Low</option>
+<option>Medium</option>
+<option>High</option>
+<option>Critical</option>
 </select>
-<input id="cos" placeholder="Contact On Scene">
-<button class="action" onclick="addIncident()">Add Incident</button>
+<button class="action" onclick="createIncident()">Create Incident</button>
 
-<div style="margin:10px 0;">
-<button class="status-btn Responding tab-active" id="tabResponding" onclick="filterStatus('Responding')">Responding</button>
-<button class="status-btn InProgress" id="tabInProgress" onclick="filterStatus('InProgress')">In Progress</button>
-<button class="status-btn StandingOff" id="tabStandingOff" onclick="filterStatus('StandingOff')">Standing Off</button>
-<button class="status-btn Completed" id="tabCompleted" onclick="filterStatus('Completed')">Completed</button>
-<button class="status-btn All" id="tabAll" onclick="filterStatus('')">All</button>
-</div>
-
+<h3>Active Incidents</h3>
 <div id="incidentList"></div>
 </section>
 
-<section id="reports">
-<h2>Incident Reports</h2>
-<div id="reportList"></div>
-</section>
-
 </div>
 </div>
 
-<script>
-let activeFilter = "";
-let currentUser = {};
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
 
-function show(id){
-document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
+<script type="module">
 
-function save(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
-function load(k){ return JSON.parse(localStorage.getItem(k)) || []; }
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-function toggleTheme(){
-document.body.classList.toggle("light");
-localStorage.setItem("theme",
-document.body.classList.contains("light")?"light":"dark");
-}
-if(localStorage.getItem("theme")==="light")
-document.body.classList.add("light");
-
-function signIn(){
-const nameInput = document.getElementById("name");
-const numberInput = document.getElementById("number");
-const vehicleInput = document.getElementById("vehicle");
-const roleInput = document.getElementById("role");
-
-currentUser = {
-name: nameInput.value,
-number: numberInput.value,
-vehicle: vehicleInput.value,
-role: roleInput.value
+/* 🔴 PASTE YOUR FIREBASE CONFIG BELOW */
+const firebaseConfig = {
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  storageBucket: "PASTE_HERE",
+  messagingSenderId: "PASTE_HERE",
+  appId: "PASTE_HERE"
 };
 
-save("user", currentUser);
-renderDuty();
-show("dashboard");
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let currentUser=null;
+
+window.show = function(id){
+document.querySelectorAll("section").forEach(s=>s.style.display="none");
+document.getElementById(id).style.display="block";
 }
 
-function addIncident(){
-const addressInput = document.getElementById("address");
-const severityInput = document.getElementById("severity");
-const cosInput = document.getElementById("cos");
+/* SIGN IN */
+window.signIn = async function(){
+currentUser={
+name: name.value,
+registration: registration.value,
+role: role.value,
+status:"Available"
+};
 
-if(!addressInput.value || !cosInput.value){
-alert("Please fill all fields");
+await addDoc(collection(db,"units"),currentUser);
+show("units");
+}
+
+/* CREATE INCIDENT */
+window.createIncident = async function(){
+if(currentUser.role!=="Dispatcher"){
+alert("Dispatcher only");
 return;
 }
 
-const list = load("incidents");
-
-list.push({
-id: Date.now(),
-address: addressInput.value,
-severity: severityInput.value,
-cos: cosInput.value,
-status: "Responding",
-start: Date.now(),
-elapsed: 0
-});
-
-save("incidents", list);
-
-addressInput.value="";
-cosInput.value="";
-
-renderIncidents();
-}
-
-function updateStatus(id,status){
-const list = load("incidents");
-const i = list.find(x=>x.id===id);
-
-if(status==="Completed" && currentUser.role!=="Admin"){
-alert("Admin only can complete incidents");
-return;
-}
-
-if(i.status!=="StandingOff")
-i.elapsed += Date.now() - i.start;
-
-i.status = status;
-i.start = Date.now();
-
-save("incidents", list);
-renderIncidents();
-renderReports();
-}
-
-function filterStatus(s){
-activeFilter = s;
-
-document.querySelectorAll("[id^='tab']")
-.forEach(t=>t.classList.remove("tab-active"));
-
-document.getElementById("tab"+(s||"All"))
-.classList.add("tab-active");
-
-renderIncidents();
-}
-
-function renderIncidents(){
-const incidentList = document.getElementById("incidentList");
-incidentList.innerHTML = "";
-
-const list = load("incidents");
-
-list
-.filter(i => !activeFilter || i.status===activeFilter)
-.forEach(i=>{
-
-const t = i.status==="StandingOff"
-? i.elapsed
-: i.elapsed + (Date.now()-i.start);
-
-const c = document.createElement("div");
-c.className = "card " + (i.status==="Completed"?"completed":"");
-
-c.innerHTML = `
-<b>${i.address}</b>
-<span class="sev-${i.severity}">${i.severity}</span><br>
-COS: ${i.cos}<br>
-<span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
-<button class="status-btn Responding"
-onclick="updateStatus(${i.id},'Responding')">Responding</button>
-<button class="status-btn InProgress"
-onclick="updateStatus(${i.id},'InProgress')">In Progress</button>
-<button class="status-btn StandingOff"
-onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
-<button class="status-btn Completed"
-onclick="updateStatus(${i.id},'Completed')">Completed</button>
-`;
-
-incidentList.appendChild(c);
+await addDoc(collection(db,"incidents"),{
+address: address.value,
+priority: priority.value,
+status:"Waiting",
+assigned:null
 });
 }
 
-function renderDuty(){
-const dutyList = document.getElementById("dutyList");
-dutyList.innerHTML =
-`<div class="card">${currentUser.name || ""} |
-${currentUser.vehicle || ""} |
-${currentUser.role || ""}</div>`;
-}
-
-function renderReports(){
-const reportList = document.getElementById("reportList");
-reportList.innerHTML = "";
-
-load("incidents")
-.filter(i=>i.status==="Completed")
-.forEach(i=>{
-const r=document.createElement("div");
-r.className="card";
-r.innerHTML=
-`<b>${i.address}</b><br>
-Time: ${new Date(i.elapsed).toISOString().substr(11,8)}`;
-reportList.appendChild(r);
+/* REALTIME UNITS */
+onSnapshot(collection(db,"units"), snapshot=>{
+const div=document.getElementById("unitList");
+div.innerHTML="";
+snapshot.forEach(docSnap=>{
+const u=docSnap.data();
+div.innerHTML+=`
+<div class="card">
+<b>${u.name}</b> (${u.registration})<br>
+Status: ${u.status}
+</div>`;
 });
-}
+});
+
+/* REALTIME INCIDENTS */
+onSnapshot(collection(db,"incidents"), snapshot=>{
+const div=document.getElementById("incidentList");
+div.innerHTML="";
+snapshot.forEach(docSnap=>{
+const i=docSnap.data();
+div.innerHTML+=`
+<div class="card">
+<b>${i.address}</b> - ${i.priority}<br>
+Status: ${i.status}
+</div>`;
+});
+});
 
 show("login");
-renderIncidents();
-renderReports();
+
 </script>
 
 </body>
