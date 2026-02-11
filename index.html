@@ -165,4 +165,146 @@ function signIn(){
 const nameInput = document.getElementById("name");
 const numberInput = document.getElementById("number");
 const vehicleInput = document.getElementById("vehicle");
-const roleInput = document.getElementById
+const roleInput = document.getElementById("role");
+
+currentUser = {
+name: nameInput.value,
+number: numberInput.value,
+vehicle: vehicleInput.value,
+role: roleInput.value
+};
+
+save("user", currentUser);
+renderDuty();
+show("dashboard");
+}
+
+function addIncident(){
+const addressInput = document.getElementById("address");
+const severityInput = document.getElementById("severity");
+const cosInput = document.getElementById("cos");
+
+if(!addressInput.value || !cosInput.value){
+alert("Please fill all fields");
+return;
+}
+
+const list = load("incidents");
+
+list.push({
+id: Date.now(),
+address: addressInput.value,
+severity: severityInput.value,
+cos: cosInput.value,
+status: "Responding",
+start: Date.now(),
+elapsed: 0
+});
+
+save("incidents", list);
+
+addressInput.value="";
+cosInput.value="";
+
+renderIncidents();
+}
+
+function updateStatus(id,status){
+const list = load("incidents");
+const i = list.find(x=>x.id===id);
+
+if(status==="Completed" && currentUser.role!=="Admin"){
+alert("Admin only can complete incidents");
+return;
+}
+
+if(i.status!=="StandingOff")
+i.elapsed += Date.now() - i.start;
+
+i.status = status;
+i.start = Date.now();
+
+save("incidents", list);
+renderIncidents();
+renderReports();
+}
+
+function filterStatus(s){
+activeFilter = s;
+
+document.querySelectorAll("[id^='tab']")
+.forEach(t=>t.classList.remove("tab-active"));
+
+document.getElementById("tab"+(s||"All"))
+.classList.add("tab-active");
+
+renderIncidents();
+}
+
+function renderIncidents(){
+const incidentList = document.getElementById("incidentList");
+incidentList.innerHTML = "";
+
+const list = load("incidents");
+
+list
+.filter(i => !activeFilter || i.status===activeFilter)
+.forEach(i=>{
+
+const t = i.status==="StandingOff"
+? i.elapsed
+: i.elapsed + (Date.now()-i.start);
+
+const c = document.createElement("div");
+c.className = "card " + (i.status==="Completed"?"completed":"");
+
+c.innerHTML = `
+<b>${i.address}</b>
+<span class="sev-${i.severity}">${i.severity}</span><br>
+COS: ${i.cos}<br>
+<span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
+<button class="status-btn Responding"
+onclick="updateStatus(${i.id},'Responding')">Responding</button>
+<button class="status-btn InProgress"
+onclick="updateStatus(${i.id},'InProgress')">In Progress</button>
+<button class="status-btn StandingOff"
+onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
+<button class="status-btn Completed"
+onclick="updateStatus(${i.id},'Completed')">Completed</button>
+`;
+
+incidentList.appendChild(c);
+});
+}
+
+function renderDuty(){
+const dutyList = document.getElementById("dutyList");
+dutyList.innerHTML =
+`<div class="card">${currentUser.name || ""} |
+${currentUser.vehicle || ""} |
+${currentUser.role || ""}</div>`;
+}
+
+function renderReports(){
+const reportList = document.getElementById("reportList");
+reportList.innerHTML = "";
+
+load("incidents")
+.filter(i=>i.status==="Completed")
+.forEach(i=>{
+const r=document.createElement("div");
+r.className="card";
+r.innerHTML=
+`<b>${i.address}</b><br>
+Time: ${new Date(i.elapsed).toISOString().substr(11,8)}`;
+reportList.appendChild(r);
+});
+}
+
+show("login");
+renderIncidents();
+renderReports();
+</script>
+
+</body>
+</html>
