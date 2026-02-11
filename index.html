@@ -84,9 +84,9 @@ a{color:#66b3ff;}
 <div class="container">
 
 <div class="sidebar">
-<button onclick="show('login')">Sign In</button>
-<button onclick="show('incidents')">Active Incidents</button>
-<button onclick="show('reports')">Incident Reports</button>
+<button onclick="showSection('login')">Sign In</button>
+<button onclick="showSection('incidents')">Active Incidents</button>
+<button onclick="showSection('reports')">Incident Reports</button>
 </div>
 
 <div class="main">
@@ -94,7 +94,7 @@ a{color:#66b3ff;}
 <section id="login">
 <h2>Responder Sign In</h2>
 <input id="responderName" placeholder="Name">
-<select id="role">
+<select id="userRole">
 <option value="Responder">Responder</option>
 <option value="Admin">Admin</option>
 </select>
@@ -107,12 +107,14 @@ a{color:#66b3ff;}
 <input id="address" placeholder="Incident Address">
 
 <select id="incidentType">
+<option value="">Select Type</option>
 <option value="Crime">Crime</option>
 <option value="Fire">Fire</option>
 <option value="Medical">Medical</option>
 </select>
 
 <select id="priority">
+<option value="">Priority</option>
 <option>Low</option>
 <option>Medium</option>
 <option>High</option>
@@ -141,34 +143,54 @@ a{color:#66b3ff;}
 <audio id="medicalSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
 
 <script>
-let currentUser={};
-function show(id){
+/* ---------- UTILITIES ---------- */
+window.showSection = function(id){
 document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
-}
+};
 
-function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
-function load(k){return JSON.parse(localStorage.getItem(k))||[];}
+window.save = function(k,v){
+localStorage.setItem(k,JSON.stringify(v));
+};
 
-function toggleTheme(){
+window.load = function(k){
+return JSON.parse(localStorage.getItem(k)) || [];
+};
+
+/* ---------- THEME ---------- */
+window.toggleTheme = function(){
 document.body.classList.toggle("light");
 localStorage.setItem("theme",document.body.classList.contains("light")?"light":"dark");
-}
+};
 if(localStorage.getItem("theme")==="light")document.body.classList.add("light");
 
-function signIn(){
-currentUser={name:responderName.value,role:role.value};
+/* ---------- AUTH ---------- */
+let currentUser={};
+
+window.signIn = function(){
+if(!responderName.value){
+alert("Please enter your name");
+return;
+}
+currentUser={name:responderName.value,role:userRole.value};
 save("user",currentUser);
-show("incidents");
+showSection("incidents");
+};
+
+/* ---------- SOUND ---------- */
+window.playSound = function(type){
+if(type==="Crime")document.getElementById("crimeSound").play();
+if(type==="Fire")document.getElementById("fireSound").play();
+if(type==="Medical")document.getElementById("medicalSound").play();
+};
+
+/* ---------- INCIDENTS ---------- */
+window.addIncident = function(){
+if(!address.value || !incidentType.value || !priority.value || !cos.value){
+alert("Please fill in ALL incident fields.");
+return;
 }
 
-function playSound(type){
-if(type==="Crime")crimeSound.play();
-if(type==="Fire")fireSound.play();
-if(type==="Medical")medicalSound.play();
-}
-
-function addIncident(){
 const incident={
 id:Date.now(),
 address:address.value,
@@ -180,38 +202,48 @@ start:Date.now(),
 elapsed:0,
 report:""
 };
+
 const list=load("incidents");
 list.push(incident);
 save("incidents",list);
-playSound(incident.type);
-renderIncidents();
-}
 
-function updateStatus(id,status){
+playSound(incident.type);
+
+address.value="";
+cos.value="";
+
+renderIncidents();
+};
+
+window.updateStatus = function(id,status){
 const list=load("incidents");
 const i=list.find(x=>x.id===id);
 
-if(status==="Completed" && currentUser.role!=="Admin"){
-alert("Admin confirmation required");
+if(status==="Completed"){
+if(currentUser.role!=="Admin"){
+alert("Admin approval required.");
 return;
 }
-if(status==="Completed" && !confirm("Confirm incident completed?"))return;
+if(!confirm("Confirm incident completed?"))return;
+}
 
-if(i.status!=="StandingOff")i.elapsed+=Date.now()-i.start;
+if(i.status!=="StandingOff"){
+i.elapsed+=Date.now()-i.start;
+}
 i.status=status;
 i.start=Date.now();
 
 save("incidents",list);
 renderIncidents();
 renderReports();
-}
+};
 
-function saveReport(id,text){
+window.saveReport = function(id,text){
 const list=load("incidents");
 list.find(i=>i.id===id).report=text;
 save("incidents",list);
 renderReports();
-}
+};
 
 function renderIncidents(){
 incidentList.innerHTML="";
@@ -221,8 +253,7 @@ const c=document.createElement("div");
 c.className="card "+(i.status==="Completed"?"completed":"");
 c.innerHTML=`
 <b>${i.address}</b><br>
-Type: ${i.type} | 
-<span class="pr-${i.priority}">${i.priority}</span><br>
+Type: ${i.type} | <span class="pr-${i.priority}">${i.priority}</span><br>
 COS: ${i.cos}<br>
 <span class="timer ${i.status}">${new Date(t).toISOString().substr(11,8)}</span><br>
 <a target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a><br>
@@ -241,13 +272,17 @@ reportList.innerHTML="";
 load("incidents").filter(i=>i.status==="Completed").forEach(i=>{
 const r=document.createElement("div");
 r.className="card";
-r.innerHTML=`<b>${i.address}</b><br>${i.report || "No report submitted"}<br>
-Time: ${new Date(i.elapsed).toISOString().substr(11,8)}`;
+r.innerHTML=`
+<b>${i.address}</b><br>
+${i.report||"No report submitted"}<br>
+Time on scene: ${new Date(i.elapsed).toISOString().substr(11,8)}
+`;
 reportList.appendChild(r);
 });
 }
 
-show("login");
+/* ---------- INIT ---------- */
+showSection("login");
 renderIncidents();
 renderReports();
 </script>
