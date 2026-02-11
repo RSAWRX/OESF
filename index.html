@@ -4,56 +4,99 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Emergency Operations Dashboard</title>
+
 <style>
-body { margin:0; font-family:Arial,sans-serif; background:#001f3f; color:white; display:flex; height:100vh; }
-.sidebar { width:260px; background:#00264d; padding-top:20px; display:flex; flex-direction:column; align-items:center; }
-.logo { width:150px; margin-bottom:20px; }
-.sidebar button { width:100%; background:none; border:none; color:white; padding:18px 20px; text-align:left; cursor:pointer; font-size:16px; border-bottom:1px solid #004080; transition:.3s; }
-.sidebar button:hover { background-color:#004080; }
-.main { flex:1; padding:20px; overflow-y:auto; }
+/* --- Body & Layout --- */
+body { margin:0; font-family:'Segoe UI',Arial,sans-serif; background:#001f3f; color:white; display:flex; height:100vh; flex-direction:column;}
+.header { position: sticky; top: 0; background:#00264d; display:flex; align-items:center; padding:10px 20px; z-index:10; border-bottom:2px solid #004080; }
+.header img { width:50px; margin-right:15px; }
+.header h1 { font-size:24px; color:white; margin:0; }
+
+.content { display:flex; flex:1; overflow:hidden; }
+
+.sidebar { width:280px; background:#00264d; padding-top:20px; display:flex; flex-direction:column; align-items:center; overflow-y:auto; }
+.logo { width:160px; margin-bottom:20px; }
+.sidebar button { width:100%; background:none; border:none; color:white; padding:20px 25px; text-align:left; cursor:pointer; font-size:18px; border-bottom:1px solid #004080; transition:.3s; border-radius:4px; }
+.sidebar button:hover { background-color:#004080; transform:scale(1.02); }
+
+.main { flex:1; padding:25px; overflow-y:auto; }
+
+/* --- Sections --- */
 section { display:none; }
 section.active { display:block; }
-h2 { margin-top:0; }
-input, select, button.add-btn { margin:5px 0; padding:5px; font-size:14px; }
-button.add-btn { background-color:#0074D9; border:none; color:white; cursor:pointer; transition:.3s; }
-button.add-btn:hover { background-color:#005fa3; }
-.card { background-color:#003366; padding:10px; margin:10px 0; border-radius:8px; animation:fadeIn .5s; }
+h2 { margin-top:0; font-size:26px; }
+
+/* --- Inputs & Buttons --- */
+input, select, button.add-btn, textarea { margin:8px 0; padding:8px; font-size:16px; border-radius:4px; border:none; }
+button.add-btn { background-color:#0074D9; border:none; color:white; cursor:pointer; padding:10px 18px; font-size:16px; border-radius:4px; transition:.3s; }
+button.add-btn:hover { background-color:#005fa3; transform:scale(1.05); }
+
+/* --- Cards --- */
+.card { background-color:#003366; padding:15px; margin:12px 0; border-radius:10px; box-shadow: 0 3px 8px rgba(0,0,0,0.4); animation:fadeIn .5s; transition:.3s; display:flex; flex-direction:column; }
+.card.completed { opacity:0.5; }
+
 @keyframes fadeIn { from{opacity:0; transform:translateY(-5px);} to{opacity:1; transform:translateY(0);} }
-.status-btn { border:none; padding:3px 6px; cursor:pointer; margin-right:5px; color:white; }
+
+/* --- Status Buttons --- */
+.status-btn { border:none; padding:6px 10px; cursor:pointer; margin-right:6px; color:white; font-weight:bold; border-radius:4px; font-size:14px; }
 .status-Responding { background-color:orange; }
 .status-InProgress { background-color:#0074D9; }
 .status-StandingOff { background-color:red; }
 .status-Completed { background-color:green; }
-a { color:#1E90FF; text-decoration:none; }
+
+/* --- Timer Display --- */
+.timer { font-size:18px; font-weight:bold; padding:3px 6px; border-radius:4px; display:inline-block; margin-left:10px; }
+.timer-Responding { background-color:orange; color:white; }
+.timer-InProgress { background-color:#0074D9; color:white; }
+.timer-StandingOff { background-color:red; color:white; }
+.timer-Completed { background-color:green; color:white; }
+
+/* --- Links & Map --- */
+a { color:#1E90FF; text-decoration:none; font-weight:bold; }
 a:hover { text-decoration:underline; }
-#map { width:100%; height:500px; margin-top:10px; border-radius:8px; }
+#map { width:100%; height:500px; margin-top:10px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.5); }
 .overdue { background-color:#ffcc00; color:black !important; }
-.filter-container { margin:10px 0; }
+
+/* --- Filters --- */
+.filter-container { margin:12px 0; font-size:16px; }
+textarea { width:100%; resize:none; padding:8px; border-radius:4px; font-size:16px; }
+
 </style>
 </head>
+
 <body>
 
-<div class="sidebar">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Blue_alert_logo.png/1200px-Blue_alert_logo.png" alt="Logo" class="logo">
-  <button onclick="showSection('login')">Sign In</button>
-  <button onclick="showSection('dashboard')">Dashboard</button>
-  <button onclick="showSection('incidents')">Active Incidents</button>
-  <button onclick="showSection('contacts')">Contacts / On Duty</button>
-  <button onclick="showSection('mapSection')">Map View</button>
+<!-- Top Header -->
+<div class="header">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Blue_alert_logo.png/1200px-Blue_alert_logo.png" alt="Logo">
+    <h1>Emergency Operations Dashboard</h1>
 </div>
 
+<div class="content">
+<!-- Sidebar -->
+<div class="sidebar">
+<button onclick="showSection('login')">Sign In</button>
+<button onclick="showSection('dashboard')">Dashboard</button>
+<button onclick="showSection('incidents')">Active Incidents</button>
+<button onclick="showSection('contacts')">Contacts / On Duty</button>
+<button onclick="showSection('mapSection')">Map View</button>
+<button onclick="showSection('reports')">Incident Reports</button>
+</div>
+
+<!-- Main Content -->
 <div class="main">
 
 <!-- Login -->
 <section id="login">
-  <h2>Responder Sign-In</h2>
-  <input type="text" id="responderName" placeholder="Name"><br>
-  <input type="text" id="responderNumber" placeholder="Contact Number"><br>
-  <input type="text" id="vehicleColor" placeholder="Vehicle Color"><br>
-  <input type="text" id="vehicleReg" placeholder="Vehicle Registration"><br>
-  <button class="add-btn" onclick="responderSignIn()">Sign In</button>
-  <button class="add-btn" onclick="responderSignOut()">Sign Out</button>
-  <div id="loginMessage"></div>
+<h2>Responder Sign-In</h2>
+<input type="text" id="responderName" placeholder="Name"><br>
+<input type="text" id="responderNumber" placeholder="Contact Number"><br>
+<input type="text" id="vehicleColor" placeholder="Vehicle Color"><br>
+<input type="text" id="vehicleReg" placeholder="Vehicle Registration"><br>
+<input type="text" id="responderVehicleDriven" placeholder="Vehicle you are driving"><br>
+<button class="add-btn" onclick="responderSignIn()">Sign In</button>
+<button class="add-btn" onclick="responderSignOut()">Sign Out</button>
+<div id="loginMessage"></div>
 </section>
 
 <!-- Dashboard -->
@@ -62,44 +105,57 @@ a:hover { text-decoration:underline; }
 <button onclick="goOnDuty()">Go On Duty</button>
 <button onclick="goOffDuty()">Go Off Duty</button>
 <button onclick="shareLocation()">Share GPS Location</button>
+
 <h3>Vehicle Watchlist</h3>
 <input type="text" id="watchReg" placeholder="Registration">
 <input type="text" id="watchDetails" placeholder="Vehicle details">
+<input type="text" id="watchCrime" placeholder="Crime / Reason for Watch">
 <button class="add-btn" onclick="addVehicle()">Add Vehicle</button>
 <div id="vehicleList"></div>
+
+<h3>On Duty Responders</h3>
+<div id="onDutyList"></div>
+
+<h3>Most Recent 3 Incidents</h3>
+<div id="recentIncidents"></div>
+
+<h3>In Pursuit</h3>
+<div id="inPursuitList"></div>
+<button class="add-btn" onclick="startPursuit()">Initiate Pursuit</button>
 </section>
 
-<!-- Incidents -->
+<!-- Active Incidents -->
 <section id="incidents">
 <h2>Active Incidents</h2>
 <input type="text" id="incidentAddress" placeholder="Address">
 <select id="incidentCategory" onchange="updateIncidentType()">
-  <option value="">Category</option>
-  <option value="Crime">Crime</option>
-  <option value="Fire">Fire</option>
-  <option value="Medical">Medical</option>
+<option value="">Category</option>
+<option value="Crime">Crime</option>
+<option value="Fire">Fire</option>
+<option value="Medical">Medical</option>
 </select>
 <select id="incidentTypeSelect"><option value="">Type</option></select>
-<input type="text" id="onScene" placeholder="Personnel on scene">
+<input type="text" id="onScene" placeholder="Personnel on Scene - COS">
 <button class="add-btn" onclick="addIncident()">Add Incident</button>
+
 <div class="filter-container">
-  <label>Filter Category: 
-    <select id="filterCategory" onchange="renderIncidents()">
-      <option value="">All</option>
-      <option value="Crime">Crime</option>
-      <option value="Fire">Fire</option>
-      <option value="Medical">Medical</option>
-    </select>
-  </label>
-  <label>Filter Status: 
-    <select id="filterStatus" onchange="renderIncidents()">
-      <option value="">All</option>
-      <option value="Responding">Responding</option>
-      <option value="InProgress">In Progress</option>
-      <option value="StandingOff">Standing Off</option>
-      <option value="Completed">Completed</option>
-    </select>
-  </label>
+<label>Filter Category: 
+<select id="filterCategory" onchange="renderIncidents()">
+<option value="">All</option>
+<option value="Crime">Crime</option>
+<option value="Fire">Fire</option>
+<option value="Medical">Medical</option>
+</select>
+</label>
+<label>Filter Status: 
+<select id="filterStatus" onchange="renderIncidents()">
+<option value="">All</option>
+<option value="Responding">Responding</option>
+<option value="InProgress">In Progress</option>
+<option value="StandingOff">Standing Off</option>
+<option value="Completed">Completed</option>
+</select>
+</label>
 </div>
 <div id="incidentList"></div>
 </section>
@@ -116,171 +172,167 @@ a:hover { text-decoration:underline; }
 <div id="map"></div>
 </section>
 
+<!-- Reports -->
+<section id="reports">
+<h2>Incident Reports</h2>
+<div id="reportList"></div>
+</section>
+
 <!-- Sounds -->
 <audio id="soundCrime" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 <audio id="soundFire" src="https://www.soundjay.com/button/beep-05.wav" preload="auto"></audio>
 <audio id="soundMedical" src="https://www.soundjay.com/button/beep-09.wav" preload="auto"></audio>
+<audio id="sirenSound" src="https://www.soundjay.com/transport/siren-01.wav" preload="auto"></audio>
 
 <!-- Google Maps API -->
 <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY"></script>
 
+<!-- JS Logic -->
 <script>
 // --- Sidebar ---
-function showSection(id){
-  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+function showSection(id){document.querySelectorAll('section').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active');}
 
-// --- Local Storage with daily reset ---
+// --- LocalStorage ---
 function saveData(key,data){const today=new Date().toISOString().slice(0,10); localStorage.setItem(key,JSON.stringify({date:today,data}));}
 function loadData(key){const saved=JSON.parse(localStorage.getItem(key)); const today=new Date().toISOString().slice(0,10); if(!saved||saved.date!==today) return []; return saved.data||[];}
 
-// --- Responder Login ---
+// --- Responder login ---
 function responderSignIn(){
   const n=document.getElementById('responderName').value;
   const num=document.getElementById('responderNumber').value;
   const col=document.getElementById('vehicleColor').value;
   const reg=document.getElementById('vehicleReg').value;
-  if(!n||!num||!col||!reg){alert("All fields required"); return;}
+  const driven=document.getElementById('responderVehicleDriven').value;
+  if(!n||!num||!col||!reg||!driven){alert("All fields required"); return;}
   let contacts=loadData('contacts');
-  contacts.push({name:n,number:num,vehicleColor:col,vehicleReg:reg,lat:null,lng:null});
-  saveData('contacts',contacts);
-  renderContacts();
+  contacts.push({name:n,number:num,vehicleColor:col,vehicleReg:reg,vehicleDriven:driven,lat:null,lng:null});
+  saveData('contacts',contacts); renderDashboard();
   document.getElementById('loginMessage').innerText=`Signed in as ${n}`;
 }
-function responderSignOut(){saveData('contacts',[]); renderContacts(); document.getElementById('loginMessage').innerText="Signed out";}
-
-// --- Contacts ---
-function renderContacts(){
-  const c=document.getElementById('contactList'); c.innerHTML='';
-  loadData('contacts').forEach(ct=>{
-    let d=document.createElement('div'); d.className='card';
-    d.innerText=`${ct.name} — ${ct.number} | ${ct.vehicleColor} ${ct.vehicleReg}`;
-    c.appendChild(d);
-  });
-}
+function responderSignOut(){saveData('contacts',[]); renderDashboard(); document.getElementById('loginMessage').innerText="Signed out";}
 
 // --- Dashboard ---
 function goOnDuty(){alert("You are now ON duty!");}
 function goOffDuty(){alert("You are now OFF duty!");}
-function shareLocation(){
-  if(!navigator.geolocation){alert("Geolocation not supported"); return;}
-  navigator.geolocation.getCurrentPosition(pos=>{
-    let contacts=loadData('contacts');
-    if(contacts.length>0){
-      contacts[contacts.length-1].lat=pos.coords.latitude;
-      contacts[contacts.length-1].lng=pos.coords.longitude;
-      saveData('contacts',contacts); renderContacts(); renderMapMarkers();
-    }
-    alert(`Location shared: ${pos.coords.latitude}, ${pos.coords.longitude}`);
-  });
-}
+function shareLocation(){ if(!navigator.geolocation){alert("Geolocation not supported"); return;}
+navigator.geolocation.getCurrentPosition(pos=>{let contacts=loadData('contacts'); if(contacts.length>0){contacts[contacts.length-1].lat=pos.coords.latitude; contacts[contacts.length-1].lng=pos.coords.longitude; saveData('contacts',contacts); renderDashboard(); renderMapMarkers();} alert(`Location shared: ${pos.coords.latitude}, ${pos.coords.longitude}`); });}
 
-// --- Vehicles ---
-function addVehicle(){
-  const reg=document.getElementById('watchReg').value;
+// --- Vehicle Watchlist ---
+function addVehicle(){ 
+  const reg=document.getElementById('watchReg').value; 
   const details=document.getElementById('watchDetails').value;
-  if(!reg||!details) return;
-  let vehicles=loadData('vehicles'); vehicles.push({reg,details});
-  saveData('vehicles',vehicles); renderVehicles(); document.getElementById('watchReg').value=''; document.getElementById('watchDetails').value='';
+  const crime=document.getElementById('watchCrime').value;
+  if(!reg||!details||!crime) return; 
+  let vehicles=loadData('vehicles'); 
+  vehicles.push({reg,details,crime}); 
+  saveData('vehicles',vehicles); renderDashboard(); 
+  document.getElementById('watchReg').value=''; 
+  document.getElementById('watchDetails').value=''; 
+  document.getElementById('watchCrime').value=''; 
 }
-function renderVehicles(){const c=document.getElementById('vehicleList'); c.innerHTML=''; loadData('vehicles').forEach(v=>{let d=document.createElement('div'); d.className='card'; d.innerText=`${v.reg} — ${v.details}`; c.appendChild(d);});}
+function renderVehicles(){ 
+  const c=document.getElementById('vehicleList'); 
+  c.innerHTML=''; 
+  loadData('vehicles').forEach(v=>{let d=document.createElement('div'); d.className='card'; d.innerText=`${v.reg} — ${v.details} | Crime: ${v.crime}`; c.appendChild(d); });
+}
 
-// --- Incident Category & Type ---
-const incidentTypes={ "Crime":["House Robbery","Motor Vehicle Theft","Suspicious Vehicle/Activity"], "Fire":["House Fire","Field Fire","Car Fire"], "Medical":["Motor Vehicle Accidents","Home Accidents","Patient Check"] };
+// --- Dashboard Rendering ---
+function renderOnDuty(){
+    const container=document.getElementById('onDutyList'); container.innerHTML='';
+    const contacts=loadData('contacts');
+    if(contacts.length===0){ container.innerHTML='<i>No one on duty</i>'; return; }
+    contacts.forEach(ct=>{ let d=document.createElement('div'); d.className='card'; d.innerText=`${ct.name} — ${ct.number} | ${ct.vehicleColor} ${ct.vehicleReg} | Driving: ${ct.vehicleDriven}`; container.appendChild(d); });
+}
+function renderRecentIncidents(){
+    const container=document.getElementById('recentIncidents'); container.innerHTML='';
+    const incidents=loadData('incidents').sort((a,b)=>b.timestamp-a.timestamp).slice(0,3);
+    if(incidents.length===0){ container.innerHTML='<i>No incidents today</i>'; return; }
+    incidents.forEach((inc)=>{ let div=document.createElement('div'); div.className='card';
+    const elapsed=(inc.status==='StandingOff')?(inc.elapsed||0):(Date.now()-inc.timestamp+(inc.elapsed||0));
+    div.innerHTML=`<strong>${inc.address}</strong> [${inc.status}] <span class="timer timer-${inc.status.replace(/\s+/g,'')}">${formatTime(elapsed)}</span> | Category: ${inc.category} | Type: ${inc.type}`;
+    container.appendChild(div); });
+}
+function startPursuit(){
+  const contacts=loadData('contacts'); if(contacts.length===0){alert("No responders signed in"); return;}
+  const responder=contacts[contacts.length-1];
+  let pursuits=loadData('pursuits'); pursuits.push({responder:responder.name, vehicle:responder.vehicleDriven, timestamp:Date.now()});
+  saveData('pursuits',pursuits); renderPursuits();
+  const siren=document.getElementById('sirenSound'); siren.play(); setTimeout(()=>{siren.pause(); siren.currentTime=0;},2000);
+}
+function renderPursuits(){ const container=document.getElementById('inPursuitList'); container.innerHTML=''; const pursuits=loadData('pursuits');
+if(pursuits.length===0){ container.innerHTML='<i>No active pursuits</i>'; return; }
+pursuits.forEach(p=>{ const div=document.createElement('div'); div.className='card'; div.innerText=`${p.responder} is in pursuit with vehicle ${p.vehicle} (started: ${new Date(p.timestamp).toLocaleTimeString()})`; container.appendChild(div); });}
+function renderDashboard(){ renderVehicles(); renderOnDuty(); renderRecentIncidents(); renderContacts(); renderPursuits(); }
+
+// --- Incident Types ---
+const incidentTypes = {
+    "Crime":["House Robbery","Motor Vehicle Theft","Suspicious Vehicle/Activity"],
+    "Fire":["House Fire","Field Fire","Car Fire"],
+    "Medical":["Motor Vehicle Accidents","Home Accidents","Patient Check"]
+};
+const sounds = {
+    "Crime": document.getElementById('soundCrime'),
+    "Fire": document.getElementById('soundFire'),
+    "Medical": document.getElementById('soundMedical')
+};
+
 function updateIncidentType(){
-  const cat=document.getElementById('incidentCategory').value;
-  const typeSelect=document.getElementById('incidentTypeSelect'); typeSelect.innerHTML='<option value="">Select Type</option>';
-  if(cat && incidentTypes[cat]) incidentTypes[cat].forEach(t=>{let o=document.createElement('option'); o.value=t; o.innerText=t; typeSelect.appendChild(o);});
+    const cat = document.getElementById('incidentCategory').value;
+    const typeSelect = document.getElementById('incidentTypeSelect');
+    typeSelect.innerHTML = '<option value="">Select Type</option>';
+    if(cat && incidentTypes[cat]) incidentTypes[cat].forEach(t=>{
+        const o = document.createElement('option'); o.value = t; o.innerText = t;
+        typeSelect.appendChild(o);
+    });
 }
-
-// --- Incidents ---
-let timers=[]; 
-const OVERDUE_MS=30*60*1000; //30min
-const sounds={ "Crime":document.getElementById('soundCrime'), "Fire":document.getElementById('soundFire'), "Medical":document.getElementById('soundMedical') };
 
 function addIncident(){
-  const address=document.getElementById('incidentAddress').value;
-  const category=document.getElementById('incidentCategory').value;
-  const type=document.getElementById('incidentTypeSelect').value;
-  const personnel=document.getElementById('onScene').value;
-  if(!address||!category||!type||!personnel) return;
-  let incidents=loadData('incidents');
-  const timestamp=Date.now();
-  incidents.push({address,category,type,personnel,status:'Responding',timestamp,elapsed:0});
-  saveData('incidents',incidents);
-  sounds[category]?.play();
-  renderIncidents();
-}
+    const address = document.getElementById('incidentAddress').value;
+    const category = document.getElementById('incidentCategory').value;
+    const type = document.getElementById('incidentTypeSelect').value;
+    const personnel = document.getElementById('onScene').value;
+    if(!address || !category || !type || !personnel){ alert("Fill all fields"); return; }
 
-function updateIncidentStatus(idx,status){
-  let incidents=loadData('incidents'); let inc=incidents[idx];
-  if(inc.status!=='StandingOff' && status==='StandingOff'){ inc.elapsed=Date.now()-inc.timestamp+(inc.elapsed||0);}
-  else if(inc.status==='StandingOff' && status!=='StandingOff'){ inc.timestamp=Date.now()-(inc.elapsed||0);}
-  inc.status=status; saveData('incidents',incidents); renderIncidents();
-  alert(`Incident "${inc.address}" status changed to "${status}"`);
-}
-
-function renderIncidents(){
-  const container=document.getElementById('incidentList'); container.innerHTML='';
-  const filterCat=document.getElementById('filterCategory').value;
-  const filterStatus=document.getElementById('filterStatus').value;
-  loadData('incidents').forEach((inc,idx)=>{
-    if((filterCat && inc.category!==filterCat) || (filterStatus && inc.status!==filterStatus)) return;
-    const div=document.createElement('div'); div.className='card';
-    const elapsed=(inc.status==='StandingOff')? (inc.elapsed||0) : (Date.now()-inc.timestamp+(inc.elapsed||0));
-    if(elapsed>=OVERDUE_MS && inc.status!=='StandingOff' && inc.status!=='Completed'){div.style.backgroundColor='#ffcc00'; div.style.color='#000';} else {div.style.backgroundColor='#003366'; div.style.color='#fff';}
-    div.innerHTML=`<strong>${inc.address}</strong><br>Category: ${inc.category} | Type: ${inc.type} | On Scene: ${inc.personnel}<br>
-    Status: <span class="status-${inc.status.replace(/\s/g,'')}">${inc.status}</span> | Timer: <span id="timer-${idx}">${formatTime(elapsed)}</span><br>
-    <button class="status-btn status-StandingOff" onclick="updateIncidentStatus(${idx},'StandingOff')">Standing Off</button>
-    <button class="status-btn status-Responding" onclick="updateIncidentStatus(${idx},'Responding')">Responding</button>
-    <button class="status-btn status-InProgress" onclick="updateIncidentStatus(${idx},'InProgress')">In Progress</button>
-    <button class="status-btn status-Completed" onclick="updateIncidentStatus(${idx},'Completed')">Completed</button>`;
-    container.appendChild(div);
-    if(timers[idx]) clearInterval(timers[idx]);
-    if(inc.status!=='StandingOff'){ timers[idx]=setInterval(()=>{document.getElementById(`timer-${idx}`).innerText=formatTime(Date.now()-inc.timestamp+(inc.elapsed||0)); renderMapMarkers();},1000);}
-  });
-}
-
-// --- Format Time ---
-function formatTime(ms){ let t=Math.floor(ms/1000); let h=Math.floor(t/3600); let m=Math.floor((t%3600)/60); let s=t%60; return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;}
-
-// --- Google Maps ---
-let map; let markers=[];
-function initMap(){ map=new google.maps.Map(document.getElementById('map'),{zoom:12,center:{lat:-33.9258,lng:18.4232}}); renderMapMarkers();}
-function renderMapMarkers(){
-  markers.forEach(m=>m.setMap(null)); markers=[];
-  const geocoder=new google.maps.Geocoder();
-  loadData('incidents').forEach(inc=>{
-    geocoder.geocode({address:inc.address},function(results,status){
-      if(status==='OK'){
-        const color=getPinColor(inc);
-        const marker=new google.maps.Marker({ map, position:results[0].geometry.location,
-          title:`${inc.address} | ${inc.type} | ${inc.status}`,
-          icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:color,fillOpacity:1,strokeWeight:1,strokeColor:'black'}
-        }); markers.push(marker);
-      }
+    const incidents = loadData('incidents');
+    incidents.push({
+        id:Date.now(),
+        address,
+        category,
+        type,
+        personnel,
+        status:'Responding',
+        timestamp:Date.now(),
+        elapsed:0,
+        report:'',
+        lat:null,
+        lng:null
     });
-  });
-  // Add responder locations
-  loadData('contacts').forEach(ct=>{
-    if(ct.lat && ct.lng){
-      const marker=new google.maps.Marker({map, position:{lat:ct.lat,lng:ct.lng}, title:`${ct.name} | ${ct.vehicleColor} ${ct.vehicleReg}`, icon:{path:google.maps.SymbolPath.CIRCLE, scale:8, fillColor:'lime', fillOpacity:1, strokeWeight:1, strokeColor:'black'}}); markers.push(marker);
-    }
-  });
-}
-function getPinColor(inc){
-  const elapsed=(Date.now()-inc.timestamp)+(inc.elapsed||0);
-  if(elapsed>=OVERDUE_MS && inc.status!=='StandingOff' && inc.status!=='Completed') return 'yellow';
-  if(inc.status==='Responding') return 'orange';
-  if(inc.status==='InProgress') return '#0074D9';
-  if(inc.status==='StandingOff') return 'red';
-  if(inc.status==='Completed') return 'green';
-  return 'white';
+    saveData('incidents',incidents);
+
+    sounds[category]?.play();
+    renderIncidents();
+    renderReports();
+    renderDashboard();
+    renderMapMarkers();
+    document.getElementById('incidentAddress').value='';
+    document.getElementById('onScene').value='';
 }
 
-// --- Init ---
-window.onload=()=>{initMap(); renderContacts(); renderVehicles(); renderIncidents();}
-</script>
-</body>
-</html>
+// --- Render Incidents ---
+function renderIncidents(){
+    const container = document.getElementById('incidentList'); container.innerHTML='';
+    let incidents = loadData('incidents');
+    const filterCat = document.getElementById('filterCategory').value;
+    const filterStatus = document.getElementById('filterStatus').value;
+    if(filterCat) incidents = incidents.filter(i=>i.category===filterCat);
+    if(filterStatus) incidents = incidents.filter(i=>i.status===filterStatus);
+
+    incidents.forEach(inc => {
+        const div = document.createElement('div'); div.className='card';
+        if(inc.status==='Completed') div.classList.add('completed');
+
+        const elapsed = (inc.status==='StandingOff') ? inc.elapsed : (Date.now() - inc.timestamp + inc.elapsed);
+        
+        div.innerHTML = `<strong>${inc.address}</strong> [${inc.status}] 
+        <span class="timer timer-${inc.status.replace(/\s+/g,'')}">${formatTime(elapsed)}</span> 
+        | Category: ${inc.category}
