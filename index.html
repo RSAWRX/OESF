@@ -90,19 +90,18 @@ textarea{width:100%;}
 <body>
 
 <header>
-<div>Dispatch Command Control</div>
+<div>🚨 Dispatch Command Control</div>
 <div id="dateTime"></div>
 </header>
 
 <div class="container">
 
-<!-- Navigation -->
 <button class="nav-btn" onclick="showDashboard()">Dashboard</button>
 <button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
 <button class="nav-btn" onclick="showCompletedPage()">Completed Incidents</button>
 <button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
 
-<!-- Dashboard Page (default) -->
+<!-- Dashboard Page -->
 <div id="dashboardPage">
 <h3>Active Incidents</h3>
 <div id="activeList"></div>
@@ -221,14 +220,14 @@ const snap = await incidentDoc.get();
 const data = snap.data();
 let elapsed = data.totalElapsed;
 
-// Map status names
+// Map status
 let newStatus = data.status;
 if(status==="Responding") newStatus="Responding";
 if(status==="StandingOff") newStatus="Standing Off";
 if(status==="Busy") newStatus="Not Available";
 if(status==="Completed") newStatus="Completed";
 
-// Stop timer only if Standing Off or Completed
+// Stop timer if Standing Off or Completed
 if(status==="StandingOff" || status==="Completed"){
 if(!data.timerStopped){
 elapsed += Date.now() - data.startTime;
@@ -239,6 +238,7 @@ timerStopped:true,
 totalElapsed:elapsed,
 completedTime:status==="Completed"?Date.now():data.completedTime
 });
+
 // Play sounds
 if(status==="StandingOff"){document.getElementById("standOffChime").play();}
 if(status==="Completed"){document.getElementById("completedSound").play();}
@@ -286,7 +286,7 @@ const docs = snapshot.docs.sort((a,b)=>b.data().startTime - a.data().startTime);
 docs.forEach(docSnap=>{
 const i=docSnap.data();
 const id=docSnap.id;
-const elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime + i.totalElapsed);
+const elapsed=i.timerStopped?i.totalElapsed:(Date.now() - i.startTime + i.totalElapsed);
 
 // Status change sounds
 if(previousStatuses[id] && previousStatuses[id]!==i.status){
