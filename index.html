@@ -3,117 +3,130 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Responder Dashboard</title>
+<title>Dispatch Command Control</title>
 
 <style>
 body{
-    font-family:Arial;
-    margin:0;
-    background:#f4f6f9;
+font-family:Arial;
+margin:0;
+background:#f4f6f9;
 }
 
 header{
-    background:#1e3a5f;
-    color:white;
-    padding:15px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    font-size:18px;
+background:#1e3a5f;
+color:white;
+padding:15px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+font-size:18px;
 }
 
 .container{
-    padding:15px;
+padding:15px;
 }
 
 button{
-    padding:10px;
-    margin:5px 5px 10px 0;
-    border:none;
-    border-radius:6px;
-    cursor:pointer;
-    font-weight:bold;
+padding:10px;
+margin:5px 5px 10px 0;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-weight:bold;
 }
 
 .nav-btn{background:#1e3a5f;color:white;}
 .clear-btn{background:#444;color:white;}
-.report-btn{background:white;color:black;}
 
 .card{
-    background:white;
-    padding:15px;
-    margin-bottom:15px;
-    border-radius:8px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+background:white;
+padding:15px;
+margin-bottom:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 .description{
-    color:darkred;
-    font-weight:bold;
+color:darkred;
+font-weight:bold;
 }
 
 .status-label{
-    font-weight:bold;
+font-weight:bold;
 }
 
 .map-link{
-    display:inline-block;
-    background:#e6f0ff;
-    padding:6px 10px;
-    border-radius:6px;
-    text-decoration:none;
-    margin-top:5px;
+display:inline-block;
+background:#e6f0ff;
+padding:6px 10px;
+border-radius:6px;
+text-decoration:none;
+margin-top:5px;
 }
 
 .status-btn{
-    margin-top:5px;
+margin-top:5px;
 }
 
-.Responding{background:#2196F3;color:white;} /* Blue */
-.Busy{background:#ff9800;color:white;}       /* Orange */
-.StandingOff{background:#9c27b0;color:white;} /* Purple */
-.Completed{background:#4CAF50;color:white;}  /* Green */
+.Responding{background:orange;color:white;}
+.Busy{background:yellow;color:black;}
+.StandingOff{background:#0d47a1;color:white;} /* dark blue */
+.Completed{background:#4CAF50;color:white;}
+.write-report{background:white;color:black;}
+
+textarea{
+margin-top:5px;
+padding:6px;
+border-radius:4px;
+border:1px solid #ccc;
+}
 
 @media(max-width:600px){
-    button{
-        width:100%;
-    }
+button{width:100%;}
+textarea{width:100%;}
 }
 </style>
 </head>
 <body>
 
 <header>
-    <div>🚨 Dispatch Command Control</div>
-    <div id="dateTime"></div>
+<div>🚨 Dispatch Command Control</div>
+<div id="dateTime"></div>
 </header>
 
 <div class="container">
 
-    <button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
-    <button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
-    <button class="clear-btn" onclick="clearAll()">Delete All Incidents</button>
+<button class="nav-btn" onclick="showDashboard()">Dashboard</button>
+<button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
+<button class="nav-btn" onclick="showCompletedPage()">Completed Incidents</button>
+<button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
+<button class="clear-btn" onclick="deleteAllIncidents()">Delete All Incidents</button>
 
-    <div id="dispatchPage" style="display:none;">
-        <h3>Dispatch Incident</h3>
-        <input id="address" placeholder="Address" style="width:100%;padding:8px;margin-bottom:8px;">
-        <input id="description" placeholder="Description" style="width:100%;padding:8px;margin-bottom:8px;">
-        <select id="priority" style="width:100%;padding:8px;margin-bottom:8px;">
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
-            <option>Critical</option>
-        </select>
-        <input id="cos" placeholder="COS Name" style="width:100%;padding:8px;margin-bottom:8px;">
-        <button onclick="addIncident()">Create Incident</button>
-    </div>
+<!-- Dashboard Page -->
+<div id="dashboardPage">
+<h3>Active Incidents</h3>
+<div id="activeList"></div>
+</div>
 
-    <h3>Dashboard (Active Incidents)</h3>
-    <div id="activeList"></div>
+<!-- Dispatch Page -->
+<div id="dispatchPage" style="display:none;">
+<h3>Dispatch Incident</h3>
+<input id="address" placeholder="Address" style="width:100%;padding:8px;margin-bottom:8px;">
+<input id="description" placeholder="Description" style="width:100%;padding:8px;margin-bottom:8px;">
+<select id="priority" style="width:100%;padding:8px;margin-bottom:8px;">
+<option>Low</option>
+<option>Medium</option>
+<option>High</option>
+<option>Critical</option>
+</select>
+<input id="cos" placeholder="COS Name" style="width:100%;padding:8px;margin-bottom:8px;">
+<button onclick="addIncident()">Create Incident</button>
+</div>
 
-    <h3>Completed Incidents</h3>
-    <div id="completedList"></div>
-
+<!-- Completed Incidents Page -->
+<div id="completedPage" style="display:none;">
+<h3>Completed Incidents</h3>
+<div id="completedList"></div>
 </div>
 
 <!-- AUDIO -->
@@ -130,14 +143,13 @@ button{
 </audio>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { 
-    getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, getDoc 
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// 🔹 Firebase config here
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// --- Firebase Config ---
 const firebaseConfig = {
-     apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+ apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
@@ -150,156 +162,185 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const incidentsRef = collection(db,"incidents");
 
-window.showDispatch=function(){
-    document.getElementById("dispatchPage").style.display="block";
+// --- Page Navigation ---
+window.showDashboard = function(){
+document.getElementById("dashboardPage").style.display="block";
+document.getElementById("dispatchPage").style.display="none";
+document.getElementById("completedPage").style.display="none";
 }
 
+window.showDispatch = function(){
+document.getElementById("dashboardPage").style.display="none";
+document.getElementById("dispatchPage").style.display="block";
+document.getElementById("completedPage").style.display="none";
+}
+
+window.showCompletedPage = function(){
+document.getElementById("dashboardPage").style.display="none";
+document.getElementById("dispatchPage").style.display="none";
+document.getElementById("completedPage").style.display="block";
+}
+
+// --- Add Incident ---
 window.addIncident=async function(){
-    const address=document.getElementById("address").value;
-    const description=document.getElementById("description").value;
-    const priority=document.getElementById("priority").value;
-    const cos=document.getElementById("cos").value;
+const address=document.getElementById("address").value;
+const description=document.getElementById("description").value;
+const priority=document.getElementById("priority").value;
+const cos=document.getElementById("cos").value;
 
-    await addDoc(incidentsRef,{
-        address,
-        description,
-        priority,
-        cos,
-        status:"No Response",
-        startTime:Date.now(),
-        timerStopped:false,
-        totalElapsed:0,
-        report:""
-    });
-
-    const alarm=document.getElementById("alarmSound");
-    alarm.volume=1.0;
-    alarm.play();
-
-    if(navigator.vibrate){ navigator.vibrate([300,150,300,150,500]); }
-
-    document.getElementById("dispatchPage").style.display="none";
-}
-
-window.setStatus = async function(id, status){
-    const incidentRef = doc(db,"incidents",id);
-    const snap = await getDoc(incidentRef);
-    if(!snap.exists()) return;
-    const data = snap.data();
-
-    let newStatus = status;
-    let stopTimer = false;
-
-    if(status === "Responding") newStatus = "Responding";
-    if(status === "Busy") newStatus = "Not Available";
-    if(status === "StandingOff") { newStatus = "Standing Off"; stopTimer = true; }
-    if(status === "Completed") { newStatus = "Completed"; stopTimer = true; }
-
-    let elapsed = data.totalElapsed;
-    if(stopTimer && !data.timerStopped){
-        elapsed += Date.now() - data.startTime;
-    }
-
-    await updateDoc(incidentRef, {
-        status: newStatus,
-        timerStopped: stopTimer ? true : data.timerStopped,
-        totalElapsed: elapsed,
-        completedTime: status==="Completed"?Date.now():data.completedTime
-    });
-
-    if(status === "StandingOff") document.getElementById("standOffChime").play();
-    if(status === "Completed") document.getElementById("completedSound").play();
-};
-
-window.addReport = async function(id){
-    const report = prompt("Write your report:");
-    const incidentRef = doc(db,"incidents",id);
-    await updateDoc(incidentRef,{report});
-}
-
-window.clearCompleted = async function(){
-    onSnapshot(incidentsRef,(snapshot)=>{
-        snapshot.forEach(docSnap=>{
-            if(docSnap.data().status==="Completed"){
-                deleteDoc(doc(db,"incidents",docSnap.id));
-            }
-        });
-    });
-}
-
-window.clearAll = async function(){
-    if(!confirm("Are you sure you want to delete ALL incidents?")) return;
-    onSnapshot(incidentsRef,(snapshot)=>{
-        snapshot.forEach(docSnap=>{
-            deleteDoc(doc(db,"incidents",docSnap.id));
-        });
-    });
-}
-
-function formatTime(ms){
-    let seconds=Math.floor(ms/1000);
-    let h=Math.floor(seconds/3600);
-    let m=Math.floor((seconds%3600)/60);
-    let s=seconds%60;
-    return `${h}h ${m}m ${s}s`;
-}
-
-let previousStatuses={};
-
-onSnapshot(incidentsRef,(snapshot)=>{
-    let activeHTML="";
-    let completedHTML="";
-
-    const sorted = snapshot.docs.sort((a,b)=>b.data().startTime - a.data().startTime);
-
-    sorted.forEach(docSnap=>{
-        const i = docSnap.data();
-        const id = docSnap.id;
-
-        let elapsed = i.timerStopped ? i.totalElapsed : (Date.now() - i.startTime);
-
-        if(previousStatuses[id] && previousStatuses[id]!==i.status){
-            if(i.status==="Standing Off"){ document.getElementById("standOffChime").play(); }
-            if(i.status==="Completed"){ document.getElementById("completedSound").play(); }
-        }
-        previousStatuses[id] = i.status;
-
-        let card=`<div class="card">
-            <b>${i.address}</b><br>
-            <span class="description">${i.description}</span><br>
-            Priority: ${i.priority}<br>
-            COS: ${i.cos}<br>
-            <span class="status-label">Status: ${i.status}</span><br>
-            Time: ${formatTime(elapsed)}<br>
-            <a class="map-link" target="_blank"
-                href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">
-                Open Map</a><br>
-        `;
-
-        if(i.status!=="Completed"){
-            card+=`
-            <button class="status-btn Responding" onclick="setStatus('${id}','Responding')">Responding</button>
-            <button class="status-btn Busy" onclick="setStatus('${id}','Busy')">Busy</button>
-            <button class="status-btn StandingOff" onclick="setStatus('${id}','StandingOff')">Standing Off</button>
-            <button class="status-btn Completed" onclick="setStatus('${id}','Completed')">Completed</button>
-            <button class="report-btn" onclick="addReport('${id}')">Write Report</button>
-            </div>
-            `;
-            activeHTML+=card;
-        }else{
-            card+=`Report: ${i.report || "No report"}<br></div>`;
-            completedHTML+=card;
-        }
-    });
-
-    document.getElementById("activeList").innerHTML = activeHTML;
-    document.getElementById("completedList").innerHTML = completedHTML;
+await addDoc(incidentsRef,{
+address,
+description,
+priority,
+cos,
+status:"No Response",
+startTime:Date.now(),
+timerStopped:false,
+totalElapsed:0,
+completedTime:null,
+report:""
 });
 
-// 🕒 Live Clock
+// 🔔 Alarm
+document.getElementById("alarmSound").volume=1.0;
+document.getElementById("alarmSound").play();
+
+// 📳 Vibrate mobile
+if(navigator.vibrate){navigator.vibrate([300,150,300,150,500]);}
+
+document.getElementById("dispatchPage").style.display="none";
+showDashboard();
+}
+
+// --- Set Status ---
+window.setStatus=async function(id,status){
+const incidentDoc = doc(db,"incidents",id);
+const snap = await incidentDoc.get();
+const data = snap.data();
+let elapsed = data.totalElapsed;
+
+// Map status
+let newStatus = data.status;
+if(status==="Responding") newStatus="Responding";
+if(status==="StandingOff") newStatus="Standing Off";
+if(status==="Busy") newStatus="Not Available";
+if(status==="Completed") newStatus="Completed";
+
+// Stop timer if Standing Off or Completed
+if(status==="StandingOff" || status==="Completed"){
+if(!data.timerStopped){
+elapsed += Date.now() - data.startTime;
+}
+await updateDoc(incidentDoc,{
+status:newStatus,
+timerStopped:true,
+totalElapsed:elapsed,
+completedTime:status==="Completed"?Date.now():data.completedTime
+});
+
+// Play sounds
+if(status==="StandingOff"){document.getElementById("standOffChime").play();}
+if(status==="Completed"){document.getElementById("completedSound").play();}
+}else{
+await updateDoc(incidentDoc,{status:newStatus});
+}
+}
+
+// --- Report Editing ---
+window.saveReport=async function(id){
+const reportText = document.getElementById("report-"+id).value;
+await updateDoc(doc(db,"incidents",id),{report:reportText});
+alert("Report saved.");
+}
+
+// --- Clear Completed ---
+window.clearCompleted=async function(){
+onSnapshot(incidentsRef,(snapshot)=>{
+snapshot.forEach(docSnap=>{
+if(docSnap.data().status==="Completed"){
+deleteDoc(doc(db,"incidents",docSnap.id));
+}
+});
+});
+}
+
+// --- Delete All Incidents ---
+window.deleteAllIncidents = async function(){
+if(confirm("Are you sure you want to delete ALL incidents? This cannot be undone.")){
+const snapshot = await getDocs(incidentsRef);
+snapshot.forEach(async (docSnap)=>{
+await deleteDoc(doc(db,"incidents",docSnap.id));
+});
+}
+}
+
+// --- Format Time ---
+function formatTime(ms){
+let seconds=Math.floor(ms/1000);
+let h=Math.floor(seconds/3600);
+let m=Math.floor((seconds%3600)/60);
+let s=seconds%60;
+return `${h}h ${m}m ${s}s`;
+}
+
+// --- Render Incidents Live ---
+let previousStatuses={};
+onSnapshot(incidentsRef,(snapshot)=>{
+let activeHTML="";
+let completedHTML="";
+
+// Sort newest first
+const docs = snapshot.docs.sort((a,b)=>b.data().startTime - a.data().startTime);
+
+docs.forEach(docSnap=>{
+const i=docSnap.data();
+const id=docSnap.id;
+const elapsed=i.timerStopped?i.totalElapsed:(Date.now() - i.startTime + i.totalElapsed);
+
+// Status change sounds
+if(previousStatuses[id] && previousStatuses[id]!==i.status){
+if(i.status==="Standing Off"){document.getElementById("standOffChime").play();}
+if(i.status==="Completed"){document.getElementById("completedSound").play();}
+}
+previousStatuses[id]=i.status;
+
+let card=`<div class="card">
+<b>${i.address}</b><br>
+<span class="description">${i.description}</span><br>
+Priority: ${i.priority}<br>
+COS: ${i.cos}<br>
+<span class="status-label">Status: ${i.status}</span><br>
+Created: ${new Date(i.startTime).toLocaleString()}<br>
+${i.completedTime?`Completed: ${new Date(i.completedTime).toLocaleString()}<br>`:""}
+Time: ${formatTime(elapsed)}<br>
+<a class="map-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a><br>
+`;
+
+if(i.status!=="Completed"){
+card+=`
+<button class="status-btn Responding" onclick="setStatus('${id}','Responding')">Responding</button>
+<button class="status-btn Busy" onclick="setStatus('${id}','Busy')">Busy</button>
+<button class="status-btn StandingOff" onclick="setStatus('${id}','StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="setStatus('${id}','Completed')">Completed</button>
+<button class="write-report" onclick="document.getElementById('report-${id}').style.display='block'">Write Report</button>
+<textarea id="report-${id}" style="width:100%;display:none;margin-top:5px;">${i.report}</textarea>
+<button class="write-report" onclick="saveReport('${id}')">Save Report</button>
+`;
+activeHTML+=card+"</div>";
+}else{
+card+=`<textarea style="width:100%;margin-top:5px;" readonly>${i.report}</textarea>`;
+completedHTML+=card+"</div>";
+}
+});
+
+document.getElementById("activeList").innerHTML=activeHTML;
+document.getElementById("completedList").innerHTML=completedHTML;
+});
+
+// --- Live Clock ---
 setInterval(()=>{
-    const now=new Date();
-    document.getElementById("dateTime").innerText=now.toLocaleString();
+const now=new Date();
+document.getElementById("dateTime").innerText=now.toLocaleString();
 },1000);
 
 </script>
