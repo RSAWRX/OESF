@@ -25,6 +25,8 @@ button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 a.mapLink{color:#00e5ff;text-decoration:none;font-weight:bold}
 a.mapLink:hover{text-decoration:underline}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
+.responder{margin-left:10px;}
+.responder b{color:#00e5ff;}
 </style>
 </head>
 
@@ -68,8 +70,8 @@ a.mapLink:hover{text-decoration:underline}
 
 <script>
 let incidents=[];
+let responders=["Responder1","Responder2","Responder3"]; // example responders
 
-// Show section
 function show(id){
 document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
@@ -85,7 +87,9 @@ description:description.value,
 contact:contact.value,
 priority:priority.value,
 created:Date.now(),
-status:"Responding"
+status:"Active",
+responders:[],
+completed:false
 };
 incidents.unshift(incident); // newest first
 renderIncidents();
@@ -93,10 +97,43 @@ address.value=""; description.value=""; contact.value="";
 show("dashboard");
 }
 
-// Update status
-function updateStatus(id,status){
-const inc=incidents.find(i=>i.id===id);
-if(inc){ inc.status=status; renderIncidents(); }
+// Assign responder and update status
+function responderStatus(incidentId,responder,status){
+const inc=incidents.find(i=>i.id===incidentId);
+if(!inc) return;
+
+// Check if responder already assigned
+let r=inc.responders.find(x=>x.name===responder);
+if(!r){
+r={name:responder,status:"Responding",start:Date.now(),elapsed:0,commander:false};
+inc.responders.push(r);
+}
+
+// First to go On Scene → Commander
+if(status==="On Scene" && !inc.responders.some(x=>x.commander)){
+r.commander=true;
+}
+
+// Stop timer if Standing Off or Completed
+if((status==="Standing Off" || status==="Completed") && r.status!=="Completed"){
+r.elapsed+=Date.now()-r.start;
+r.start=null;
+}
+
+// Start timer if returning to Active
+if(status!=="Standing Off" && status!=="Completed" && r.start===null){
+r.start=Date.now();
+}
+
+r.status=status;
+
+// If all responders Completed, mark incident completed
+if(inc.responders.length>0 && inc.responders.every(x=>x.status==="Completed")){
+inc.completed=true;
+inc.status="Completed";
+}
+
+renderIncidents();
 }
 
 // Remove incident
@@ -113,19 +150,14 @@ activeDiv.innerHTML="";
 completedDiv.innerHTML="";
 
 incidents.forEach(i=>{
-let diff=Math.floor((Date.now()-i.created)/1000);
-let m=Math.floor(diff/60).toString().padStart(2,"0");
-let s=(diff%60).toString().padStart(2,"0");
 const mapUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(i.address);
-
-if(i.status==="Completed"){
-// Completed incidents
+if(i.completed){
 completedDiv.innerHTML+=`
 <div class="card">
 <b>${i.priority}</b> - <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
 ${i.description}<br>
 Contact: ${i.contact}<br>
-Total Time: <span class="timer">${m}:${s}</span>
+Responders: ${i.responders.map(r=>`${r.name} (${r.status}${r.commander?" Commander":""})`).join(", ")}<br>
 <button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
 </div>`;
 } else {
@@ -135,21 +167,43 @@ activeDiv.innerHTML+=`
 <b>${i.priority}</b> - <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
 ${i.description}<br>
 Contact: ${i.contact}<br>
-Time: <span class="timer">${m}:${s}</span><br>
-Status: <b>${i.status}</b><br>
-<button class="orange" onclick="updateStatus(${i.id},'Responding')">Responding</button>
-<button class="blue" onclick="updateStatus(${i.id},'Standing Off')">Standing Off</button>
-<button class="red" onclick="updateStatus(${i.id},'Busy')">Busy</button>
-<button class="green" onclick="updateStatus(${i.id},'Completed')">Completed</button>
+Responders: ${i.responders.map(r=>`${r.name} (${r.status}${r.commander?" Commander":""})`).join(", ")}<br>
+${responders.map(res=>`
+<button class="${statusColor(res,i)}" onclick="responderStatus(${i.id},'${res}','Responding')">${res}:Responding</button>
+<button class="${statusColor(res,i)}" onclick="responderStatus(${i.id},'${res}','On Scene')">${res}:On Scene</button>
+<button class="${statusColor(res,i)}" onclick="responderStatus(${i.id},'${res}','Standing Off')">${res}:Standing Off</button>
+<button class="${statusColor(res,i)}" onclick="responderStatus(${i.id},'${res}','Busy')">${res}:Busy</button>
+<button class="${statusColor(res,i)}" onclick="responderStatus(${i.id},'${res}','Completed')">${res}:Completed</button>
+`).join("")}
 <button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
 </div>`;
 }
 });
 }
 
-// Update timers every second
-setInterval(renderIncidents,1000);
+// Helper to color buttons per current status
+function statusColor(res,incident){
+const r=incident.responders.find(x=>x.name===res);
+if(!r) return "orange";
+switch(r.status){
+case "Responding": return "orange";
+case "On Scene": return "blue";
+case "Standing Off": return "red";
+case "Busy": return "red";
+case "Completed": return "green";
+default: return "orange";
+}
+}
 
+// Update timers every second
+setInterval(()=>{
+incidents.forEach(i=>{
+i.responders.forEach(r=>{
+if(r.start) r.elapsed+=1000;
+});
+});
+renderIncidents();
+},1000);
 </script>
 </body>
 </html>
