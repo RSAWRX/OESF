@@ -15,7 +15,7 @@ header{background:#132c4d;padding:15px;font-size:20px}
 .main{flex:1;padding:20px;overflow:auto}
 .card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px}
 input,select,textarea{width:100%;padding:8px;margin:6px 0}
-button.action{background:#0074D9;color:white;border:none;padding:8px;cursor:pointer;margin:3px 0}
+button.action{background:#0074D9;color:white;border:none;padding:6px 10px;margin:3px 2px;cursor:pointer}
 .timer{color:#00d4ff;font-weight:bold}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
 .commander{color:#ffcc00;font-weight:bold}
@@ -80,18 +80,17 @@ button.action{background:#0074D9;color:white;border:none;padding:8px;cursor:poin
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, arrayUnion }
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, getDocs, query, where }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* 🔴 REPLACE WITH YOUR FIREBASE CONFIG */
+/* 🔴 INSERT YOUR REAL FIREBASE CONFIG */
 const firebaseConfig = {
- apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
-
 };
 
 const app = initializeApp(firebaseConfig);
@@ -105,10 +104,19 @@ document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
 }
 
-/* SIGN IN */
+/* SIGN IN WITH DUPLICATE PREVENTION */
 window.signIn=async function(){
+
 if(!name.value||!vehicleMakeModel.value||!vehicleColour.value||!registration.value){
 alert("Complete all fields.");
+return;
+}
+
+const q=query(collection(db,"units"), where("registration","==",registration.value));
+const snapshot=await getDocs(q);
+
+if(!snapshot.empty){
+alert("This vehicle is already signed in.");
 return;
 }
 
@@ -123,7 +131,7 @@ status:"Available"
 await addDoc(collection(db,"units"),currentUser);
 
 document.getElementById("signinBtn").style.display="none";
-alert("Signed in.");
+alert("Signed in successfully.");
 show("dashboard");
 }
 
@@ -140,26 +148,39 @@ commander:null
 alert("Incident Created.");
 }
 
-/* ACCEPT INCIDENT */
+/* RESPOND TO INCIDENT */
 window.acceptIncident=async function(id){
-await updateDoc(doc(db,"incidents",id),{
-responders: arrayUnion({
-registration:currentUser.registration,
-name:currentUser.name,
-status:"Responding",
-onSceneTime:null
-})
-});
+
+const incidentRef=doc(db,"incidents",id);
+const snapshot=await incidentRef.get();
 }
 
 /* UPDATE STATUS */
 window.updateResponderStatus=async function(incidentId,newStatus){
-const incidentRef=doc(db,"incidents",incidentId);
 
+const incidentRef=doc(db,"incidents",incidentId);
 const snap=await incidentRef.get();
+const data=snap.data();
+
+let responders=data.responders;
+
+responders=responders.map(r=>{
+if(r.registration===currentUser.registration){
+if(newStatus==="On Scene" && !data.commander){
+data.commander=currentUser.registration;
+}
+return {...r,status:newStatus};
+}
+return r;
+});
+
+await updateDoc(incidentRef,{
+responders:responders,
+commander:data.commander||null
+});
 }
 
-/* LIVE INCIDENT DASHBOARD */
+/* LIVE INCIDENT BOARD */
 onSnapshot(collection(db,"incidents"),snapshot=>{
 const div=document.getElementById("incidentBoard");
 div.innerHTML="";
@@ -192,10 +213,35 @@ Address: ${data.address}<br>
 Time Elapsed: <span class="timer">${m}:${s}</span><br>
 Responders:<br>${respondersHTML}
 <br>
-${currentUser?`<button onclick="acceptIncident('${id}')">Respond</button>`:""}
+${currentUser && !data.responders.find(r=>r.registration===currentUser.registration)
+? `<button class="action" onclick="addResponder('${id}')">Respond</button>`:""}
+
+${currentUser && data.responders.find(r=>r.registration===currentUser.registration)
+? `
+<button class="action" onclick="updateResponderStatus('${id}','Responding')">Responding</button>
+<button class="action" onclick="updateResponderStatus('${id}','On Scene')">On Scene</button>
+<button class="action" onclick="updateResponderStatus('${id}','Busy')">Busy</button>
+<button class="action" onclick="updateResponderStatus('${id}','Completed')">Completed</button>
+`:""}
 </div>`;
 });
 });
+
+/* ADD RESPONDER */
+window.addResponder=async function(id){
+const incidentRef=doc(db,"incidents",id);
+const snap=await incidentRef.get();
+const data=snap.data();
+
+let responders=data.responders;
+responders.push({
+registration:currentUser.registration,
+name:currentUser.name,
+status:"Responding"
+});
+
+await updateDoc(incidentRef,{responders:responders});
+}
 
 /* LIVE ROSTER */
 onSnapshot(collection(db,"units"),snapshot=>{
@@ -212,7 +258,8 @@ let card=`
 <b>${u.name}</b><br>
 Vehicle: ${u.vehicleMakeModel}<br>
 Colour: ${u.vehicleColour}<br>
-Registration: ${u.registration}
+Registration: ${u.registration}<br>
+Status: ${u.status}
 </div>`;
 
 dash.innerHTML+=card;
