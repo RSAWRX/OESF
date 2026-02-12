@@ -7,37 +7,77 @@
 
 <style>
 body{margin:0;font-family:Segoe UI,Arial;background:#001f3f;color:white;}
-.header{position:sticky;top:0;background:#00264d;padding:10px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #004080;flex-wrap:wrap;}
+.header{position:sticky;top:0;background:#00264d;padding:10px 15px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:2px solid #004080;}
 .header h1{margin:0;font-size:20px;}
-.header button{margin-left:10px;margin-top:5px;}
-#clock{font-weight:bold;margin-top:5px;}
+#clock{font-weight:bold;}
 
 .container{display:flex;height:calc(100vh - 60px);}
-.sidebar{width:220px;background:#00264d;display:flex;flex-direction:column;flex-shrink:0;}
+.sidebar{width:220px;background:#00264d;display:flex;flex-direction:column;}
 .sidebar button{padding:14px;border:none;background:none;color:white;text-align:left;cursor:pointer;border-bottom:1px solid #004080;font-size:16px;}
 .sidebar button:hover{background:#004080;}
 
 .main{flex:1;padding:15px;overflow-y:auto;}
 section{display:none;}
 section.active{display:block;}
-.card{background:#003366;padding:12px;border-radius:10px;margin:8px 0;}
-.status-btn{padding:8px 10px;border:none;border-radius:4px;margin:3px;color:white;cursor:pointer;font-size:14px;}
-.Responding{background:orange;} .Busy{background:blue;} .StandingOff{background:red;} .Completed{background:green;}
-.timer{font-size:16px;font-weight:bold;padding:4px 6px;border-radius:6px;}
-.incident-desc{color:#8B0000;font-weight:bold;}
-.map-link{display:inline-block;background:#0074D9;color:white;padding:4px 8px;border-radius:4px;text-decoration:none;margin-top:4px;}
+
+.card{background:#003366;padding:12px;border-radius:10px;margin:12px 0;}
+
+.status-btn{
+  padding:8px 10px;
+  border:none;
+  border-radius:6px;
+  margin:6px 6px 6px 0;
+  color:white;
+  cursor:pointer;
+  font-size:14px;
+}
+
+.Responding{background:orange;}
+.Busy{background:blue;}
+.StandingOff{background:red;}
+.Completed{background:green;}
+
+.timer{
+  font-size:16px;
+  font-weight:bold;
+  padding:4px 6px;
+  border-radius:6px;
+  display:inline-block;
+  margin:6px 0;
+}
+
+.incident-desc{color:#ff9999;font-weight:bold;}
+
+.map-link{
+  display:inline-block;
+  background:#0074D9;
+  color:white;
+  padding:6px 10px;
+  border-radius:6px;
+  text-decoration:none;
+  margin:6px 0;
+}
 .map-link:hover{background:#005fa3;}
 
-/* INPUTS AND BUTTONS FULL WIDTH ON MOBILE */
-input, select, textarea, button.action{width:100%;box-sizing:border-box;margin:5px 0;font-size:16px;padding:8px;}
-button.action{border-radius:5px;cursor:pointer;}
+input, select, textarea, button.action{
+  width:100%;
+  box-sizing:border-box;
+  margin:6px 0;
+  font-size:16px;
+  padding:8px;
+}
 
-/* RESPONSIVE LAYOUT */
-@media (max-width: 768px) {
+button.action{
+  border-radius:6px;
+  cursor:pointer;
+}
+
+textarea{min-height:120px;}
+
+@media (max-width:768px){
   .container{flex-direction:column;}
   .sidebar{width:100%;flex-direction:row;overflow-x:auto;}
   .sidebar button{flex:1;white-space:nowrap;font-size:14px;padding:10px;}
-  .main{padding:10px;}
 }
 </style>
 </head>
@@ -45,167 +85,215 @@ button.action{border-radius:5px;cursor:pointer;}
 <body>
 
 <div class="header">
-<h1>Emergency Operations Dashboard</h1>
+<h1>Dispatch Operations Dashboard</h1>
 <div id="clock"></div>
-<button onclick="toggleTheme()">🌗 Theme</button>
 </div>
 
 <div class="container">
+
 <div class="sidebar">
 <button onclick="show('addIncident')">Add Incident</button>
-<button onclick="show('activeIncidents')">Active Incidents</button>
-<button onclick="show('completedIncidents')">Completed Incidents</button>
+<button onclick="show('activeIncidents')">Active</button>
+<button onclick="show('completedIncidents')">Completed</button>
 </div>
 
 <div class="main">
 
-<!-- Add Incident Section -->
+<!-- ADD INCIDENT -->
 <section id="addIncident">
 <h2>Create Incident</h2>
 <input id="address" placeholder="Address">
 <input id="description" placeholder="Description">
 <select id="priority">
-<option>Low</option><option>Medium</option>
-<option>High</option><option>Critical</option>
+<option>Low</option>
+<option>Medium</option>
+<option>High</option>
+<option>Critical</option>
 </select>
 <input id="cos" placeholder="Contact On Scene">
 <button class="action" onclick="addIncident()">Add Incident</button>
 </section>
 
-<!-- Active Incidents -->
+<!-- ACTIVE -->
 <section id="activeIncidents">
 <h2>Active Incidents</h2>
 <div id="incidentList"></div>
 </section>
 
-<!-- Completed Incidents -->
+<!-- COMPLETED -->
 <section id="completedIncidents">
 <h2>Completed Incidents</h2>
 <div id="completedList"></div>
+</section>
+
+<!-- REPORT PAGE -->
+<section id="reportPage">
+<h2>Incident Report</h2>
+<div id="reportInfo"></div>
+<textarea id="reportText" placeholder="Write detailed incident report here..."></textarea>
+<button class="action" onclick="submitReport()">Submit Report</button>
 </section>
 
 </div>
 </div>
 
 <script>
-let incidents = [];
-let completedIncidents = [];
+let incidents=[];
+let completedIncidents=[];
+let activeReportId=null;
 
-// Show section
+// CLOCK
+function updateClock(){
+  document.getElementById("clock").textContent=new Date().toLocaleString();
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// NAVIGATION
 function show(id){
   document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-// Clock
-function updateClock(){
-  const now = new Date();
-  document.getElementById("clock").textContent = now.toLocaleString();
-}
-setInterval(updateClock,1000);
-updateClock();
-
-// Theme toggle
-function toggleTheme(){
-  document.body.classList.toggle("light");
-}
-
-// Add Incident
+// ADD INCIDENT
 function addIncident(){
-  const address = document.getElementById("address").value;
-  const desc = document.getElementById("description").value;
-  const priority = document.getElementById("priority").value;
-  const cos = document.getElementById("cos").value;
-  if(!address || !desc || !priority || !cos){alert("Fill all fields"); return;}
-  
-  const incident = {
-    id: Date.now(),
-    address, description: desc,
-    priority, cos,
-    status: "Responding",
-    start: Date.now(),
-    elapsed: 0
+  const address=addressInput("address");
+  const desc=addressInput("description");
+  const priority=addressInput("priority");
+  const cos=addressInput("cos");
+
+  if(!address||!desc||!priority||!cos){alert("Fill all fields");return;}
+
+  const incident={
+    id:Date.now(),
+    address,description:desc,priority,cos,
+    status:"Responding",
+    startTime:Date.now(),
+    totalElapsed:0,
+    timerStopped:false,
+    report:null
   };
-  incidents.unshift(incident); // newest first
+
+  incidents.unshift(incident);
   renderIncidents();
-  document.getElementById("address").value="";
-  document.getElementById("description").value="";
-  document.getElementById("priority").value="Low";
-  document.getElementById("cos").value="";
+  clearForm();
+  show('activeIncidents');
 }
 
-// Render Active Incidents
+function addressInput(id){return document.getElementById(id).value.trim();}
+function clearForm(){
+  ["address","description","cos"].forEach(id=>document.getElementById(id).value="");
+}
+
+// TIMER FORMAT
+function formatTime(ms){
+  let sec=Math.floor(ms/1000);
+  let h=Math.floor(sec/3600);
+  let m=Math.floor((sec%3600)/60);
+  let s=sec%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// RENDER ACTIVE
 function renderIncidents(){
-  const container = document.getElementById("incidentList");
+  const container=document.getElementById("incidentList");
   container.innerHTML="";
   incidents.forEach(i=>{
-    const t = i.status==="StandingOff"||i.status==="Completed"?i.elapsed:i.elapsed+(Date.now()-i.start);
-    const c = document.createElement("div");
-    c.className="card";
-    c.innerHTML=`
+    if(!i.timerStopped){
+      i.currentElapsed=i.totalElapsed+(Date.now()-i.startTime);
+    }else{
+      i.currentElapsed=i.totalElapsed;
+    }
+
+    const div=document.createElement("div");
+    div.className="card";
+    div.innerHTML=`
       <b>${i.address}</b><br>
       <span class="incident-desc">${i.description}</span><br>
       Priority: ${i.priority}<br>
       COS: ${i.cos}<br>
-      <span class="timer ${i.status}">${new Date(t).toISOString().substr(11,8)}</span><br>
-      <a class="map-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a><br>
-      <button class="status-btn Responding" onclick="updateStatus(${i.id},'Responding')">Responding</button>
-      <button class="status-btn Busy" onclick="updateStatus(${i.id},'Busy')">Busy</button>
-      <button class="status-btn StandingOff" onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
-      <button class="status-btn Completed" onclick="updateStatus(${i.id},'Completed')">Completed</button>
-      <button class="status-btn Completed" onclick="closeIncident(${i.id})">Close Incident</button>
+      <div class="timer">${formatTime(i.currentElapsed)}</div><br>
+      <a class="map-link" target="_blank"
+      href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">
+      Open Map</a><br>
+      <button class="status-btn Responding" onclick="setStatus(${i.id},'Responding')">Responding</button>
+      <button class="status-btn Busy" onclick="setStatus(${i.id},'Busy')">Busy</button>
+      <button class="status-btn StandingOff" onclick="stopTimer(${i.id},'StandingOff')">Standing Off</button>
+      <button class="status-btn Completed" onclick="stopTimer(${i.id},'Completed')">Completed</button>
+      <button class="status-btn Completed" onclick="openReport(${i.id})">Write Report</button>
     `;
-    container.appendChild(c);
+    container.appendChild(div);
   });
+}
+
+// STATUS UPDATE (does NOT stop timer)
+function setStatus(id,status){
+  const i=incidents.find(x=>x.id===id);
+  if(!i)return;
+  i.status=status;
+  renderIncidents();
+}
+
+// STOP TIMER
+function stopTimer(id,status){
+  const i=incidents.find(x=>x.id===id);
+  if(!i)return;
+  if(!i.timerStopped){
+    i.totalElapsed+=Date.now()-i.startTime;
+    i.timerStopped=true;
+  }
+  i.status=status;
+
+  if(status==="Completed"){
+    completedIncidents.unshift(i);
+    incidents=incidents.filter(x=>x.id!==id);
+  }
+
+  renderIncidents();
   renderCompleted();
 }
 
-// Update status
-function updateStatus(id,status){
-  const i = incidents.find(x=>x.id===id);
-  if(!i) return;
-  if(status==="StandingOff" || status==="Completed"){
-    i.elapsed += Date.now()-i.start;
-  }
-  i.status=status;
-  if(status!=="Completed") i.start = Date.now();
-  renderIncidents();
+// REPORT PAGE
+function openReport(id){
+  const i=incidents.find(x=>x.id===id);
+  if(!i)return;
+  activeReportId=id;
+  document.getElementById("reportInfo").innerHTML=
+    `<b>${i.address}</b><br>${i.description}`;
+  show('reportPage');
 }
 
-// Close Incident
-function closeIncident(id){
-  const idx = incidents.findIndex(x=>x.id===id);
-  if(idx>-1){
-    const [i] = incidents.splice(idx,1);
-    i.status="Completed";
-    i.elapsed += Date.now()-i.start;
-    completedIncidents.unshift(i);
-    renderIncidents();
-  }
+function submitReport(){
+  const text=document.getElementById("reportText").value.trim();
+  if(!text){alert("Write report first.");return;}
+  const i=incidents.find(x=>x.id===activeReportId);
+  if(i){i.report=text;}
+  document.getElementById("reportText").value="";
+  activeReportId=null;
+  show('activeIncidents');
 }
 
-// Render Completed
+// RENDER COMPLETED
 function renderCompleted(){
-  const container = document.getElementById("completedList");
+  const container=document.getElementById("completedList");
   container.innerHTML="";
   completedIncidents.forEach(i=>{
-    const c = document.createElement("div");
-    c.className="card Completed";
-    c.innerHTML=`
+    const div=document.createElement("div");
+    div.className="card";
+    div.innerHTML=`
       <b>${i.address}</b><br>
-      <span class="incident-desc">${i.description}</span><br>
-      Priority: ${i.priority}<br>
-      COS: ${i.cos}<br>
-      Time: ${new Date(i.elapsed).toISOString().substr(11,8)}<br>
-      <a class="map-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a>
+      ${i.description}<br>
+      Time: ${formatTime(i.totalElapsed)}<br>
+      ${i.report?`<b>Report:</b><br>${i.report}`:""}
     `;
-    container.appendChild(c);
+    container.appendChild(div);
   });
 }
 
-// Initial render
+// LIVE TIMER UPDATE
+setInterval(renderIncidents,1000);
+
 show('addIncident');
-renderIncidents();
 </script>
 
 </body>
