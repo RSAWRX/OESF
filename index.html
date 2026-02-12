@@ -3,17 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Responder Dashboard</title>
+<title>Dispatch Command Control</title>
 
 <style>
 body{
 font-family:Arial;
 margin:0;
-background:#f4f6f9;
+background:#0b1f3a; /* Navy Blue */
+color:white;
 }
 
 header{
-background:#1e3a5f;
+background:#1e3a5f; /* KEEP SAME */
 color:white;
 padding:15px;
 display:flex;
@@ -28,7 +29,7 @@ padding:15px;
 
 button{
 padding:10px;
-margin:5px 5px 10px 0;
+margin:6px 6px 12px 0;
 border:none;
 border-radius:6px;
 cursor:pointer;
@@ -40,10 +41,11 @@ font-weight:bold;
 
 .card{
 background:white;
+color:black;
 padding:15px;
 margin-bottom:15px;
 border-radius:8px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
+box-shadow:0 2px 6px rgba(0,0,0,0.3);
 }
 
 .description{
@@ -64,33 +66,33 @@ text-decoration:none;
 margin-top:5px;
 }
 
-.status-btn{
-margin-top:5px;
-}
-
-.Responding{background:#2196F3;color:white;}
+.Responding{background:orange;color:white;}
 .Busy{background:#ff9800;color:white;}
-.StandingOff{background:#9c27b0;color:white;}
+.StandingOff{background:lightblue;color:black;}
 .Completed{background:#4CAF50;color:white;}
 
 @media(max-width:600px){
-button{
-width:100%;
-}
+button{width:100%;}
 }
 </style>
 </head>
 <body>
 
 <header>
-<div>🚨 Responder Dashboard</div>
+<div>🚨 Dispatch Command Control</div>
 <div id="dateTime"></div>
 </header>
 
 <div class="container">
 
+<button class="nav-btn" onclick="showDashboard()">Dashboard</button>
 <button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
-<button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
+<button class="nav-btn" onclick="showCompleted()">Completed Incidents</button>
+
+<div id="dashboardPage">
+<h3>Current Incidents</h3>
+<div id="activeList"></div>
+</div>
 
 <div id="dispatchPage" style="display:none;">
 <h3>Dispatch Incident</h3>
@@ -106,11 +108,11 @@ width:100%;
 <button onclick="addIncident()">Create Incident</button>
 </div>
 
-<h3>Active Incidents</h3>
-<div id="activeList"></div>
-
+<div id="completedPage" style="display:none;">
 <h3>Completed Incidents</h3>
+<button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
 <div id="completedList"></div>
+</div>
 
 </div>
 
@@ -130,7 +132,7 @@ width:100%;
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
@@ -145,68 +147,77 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const incidentsRef = collection(db,"incidents");
+const q = query(incidentsRef, orderBy("startTime","desc")); // NEWEST FIRST
 
+// PAGE NAV
+window.showDashboard=function(){
+dashboardPage.style.display="block";
+dispatchPage.style.display="none";
+completedPage.style.display="none";
+}
 window.showDispatch=function(){
-document.getElementById("dispatchPage").style.display="block";
+dashboardPage.style.display="none";
+dispatchPage.style.display="block";
+completedPage.style.display="none";
+}
+window.showCompleted=function(){
+dashboardPage.style.display="none";
+dispatchPage.style.display="none";
+completedPage.style.display="block";
 }
 
+// ADD INCIDENT
 window.addIncident=async function(){
-const address=document.getElementById("address").value;
-const description=document.getElementById("description").value;
-const priority=document.getElementById("priority").value;
-const cos=document.getElementById("cos").value;
-
 await addDoc(incidentsRef,{
-address,
-description,
-priority,
-cos,
+address:address.value,
+description:description.value,
+priority:priority.value,
+cos:cos.value,
 status:"Responding",
 startTime:Date.now(),
 timerStopped:false,
-totalElapsed:0
+totalElapsed:0,
+report:""
 });
 
-// 🔔 Alarm
-const alarm=document.getElementById("alarmSound");
-alarm.volume=1.0;
-alarm.play();
+alarmSound.volume=1.0;
+alarmSound.play();
 
-// 📳 Vibrate mobile
 if(navigator.vibrate){
 navigator.vibrate([300,150,300,150,500]);
 }
 
-document.getElementById("dispatchPage").style.display="none";
+showDashboard();
 }
 
+// STATUS
 window.setStatus=async function(id,status){
 await updateDoc(doc(db,"incidents",id),{status});
 }
 
 window.stopTimer=async function(id,status){
-const incidentDoc=doc(db,"incidents",id);
-await updateDoc(incidentDoc,{
+const snap=doc(db,"incidents",id);
+await updateDoc(snap,{
 status,
 timerStopped:true,
 totalElapsed:Date.now()
 });
 }
 
-window.clearCompleted=async function(){
-onSnapshot(incidentsRef,(snapshot)=>{
-snapshot.forEach(docSnap=>{
-if(docSnap.data().status==="Completed"){
-deleteDoc(doc(db,"incidents",docSnap.id));
-}
-});
-});
-}
-
+// REPORT PAGE
 window.openReport=function(id){
-window.location.href="?report="+id;
+const text=prompt("Write report:");
+if(text){
+updateDoc(doc(db,"incidents",id),{report:text});
+}
 }
 
+// CLEAR COMPLETED
+window.clearCompleted=async function(){
+const snapshot=await onSnapshot(q,()=>{});
+}
+
+// FORMAT TIME
 function formatTime(ms){
 let seconds=Math.floor(ms/1000);
 let h=Math.floor(seconds/3600);
@@ -217,7 +228,8 @@ return `${h}h ${m}m ${s}s`;
 
 let previousStatuses={};
 
-onSnapshot(incidentsRef,(snapshot)=>{
+// REALTIME
+onSnapshot(q,(snapshot)=>{
 let activeHTML="";
 let completedHTML="";
 
@@ -227,22 +239,19 @@ const id=docSnap.id;
 
 let elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime);
 
-// 🔊 Status change detection
+// SOUND TRIGGERS
 if(previousStatuses[id] && previousStatuses[id]!==i.status){
 
 if(i.status==="StandingOff"){
-const chime=document.getElementById("standOffChime");
-chime.volume=1.0;
-chime.play();
+standOffChime.volume=1.0;
+standOffChime.play();
 }
 
 if(i.status==="Completed"){
-const done=document.getElementById("completedSound");
-done.volume=1.0;
-done.play();
+completedSound.volume=1.0;
+completedSound.play();
 }
 }
-
 previousStatuses[id]=i.status;
 
 let card=`
@@ -260,27 +269,27 @@ Open Map</a><br>
 
 if(i.status!=="Completed"){
 card+=`
-<button class="status-btn Responding" onclick="setStatus('${id}','Responding')">Responding</button>
-<button class="status-btn Busy" onclick="setStatus('${id}','Busy')">Busy</button>
-<button class="status-btn StandingOff" onclick="stopTimer('${id}','StandingOff')">Standing Off</button>
-<button class="status-btn Completed" onclick="stopTimer('${id}','Completed')">Completed</button>
-`;
-card+="</div>";
+<button class="Responding" onclick="setStatus('${id}','Responding')">Responding</button>
+<button class="Busy" onclick="setStatus('${id}','Busy')">Busy</button>
+<button class="StandingOff" onclick="stopTimer('${id}','StandingOff')">Standing Off</button>
+<button class="Completed" onclick="stopTimer('${id}','Completed')">Completed</button>
+<button onclick="openReport('${id}')">Write Report</button>
+</div>`;
 activeHTML+=card;
 }else{
+card+=i.report?`<hr><b>Report:</b><br>${i.report}`:"";
 card+="</div>";
 completedHTML+=card;
 }
 });
 
-document.getElementById("activeList").innerHTML=activeHTML;
-document.getElementById("completedList").innerHTML=completedHTML;
+activeList.innerHTML=activeHTML;
+completedList.innerHTML=completedHTML;
 });
 
-// 🕒 Live Clock
+// CLOCK
 setInterval(()=>{
-const now=new Date();
-document.getElementById("dateTime").innerText=now.toLocaleString();
+dateTime.innerText=new Date().toLocaleString();
 },1000);
 
 </script>
