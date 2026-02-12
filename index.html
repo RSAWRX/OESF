@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Incident Command Center</title>
@@ -28,6 +28,7 @@ a.mapLink:hover{text-decoration:underline}
 .responder{margin-left:10px;}
 .responder b{color:#00e5ff;}
 .incDesc{color:#ff5555;font-weight:bold;}
+section{display:none;}
 </style>
 </head>
 
@@ -110,7 +111,6 @@ users.push(newUser);
 userName.value=""; vehicle.value="";
 alert(`${name} signed in!`);
 renderRoster();
-// Automatically go to dashboard after signing in
 show("dashboard");
 renderIncidents();
 }
@@ -252,10 +252,9 @@ renderIncidents();
 },1000);
 
 // --- Init ---
-show("dashboard");
+show("signIn");
 renderRoster();
 renderIncidents();
-
 </script>
 </body>
 </html>
