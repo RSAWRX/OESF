@@ -82,15 +82,17 @@ button{width:100%;}
 <body>
 
 <header>
-<div>🚨 Responder Dashboard</div>
+<div>🚨 Dispatch Command Control</div>
 <div id="dateTime"></div>
 </header>
 
 <div class="container">
 
 <button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
+<button class="nav-btn" onclick="showCompletedPage()">Completed Incidents</button>
 <button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
 
+<!-- Dispatch Page -->
 <div id="dispatchPage" style="display:none;">
 <h3>Dispatch Incident</h3>
 <input id="address" placeholder="Address" style="width:100%;padding:8px;margin-bottom:8px;">
@@ -105,11 +107,17 @@ button{width:100%;}
 <button onclick="addIncident()">Create Incident</button>
 </div>
 
+<!-- Active Incidents -->
+<div id="activePage">
 <h3>Active Incidents</h3>
 <div id="activeList"></div>
+</div>
 
+<!-- Completed Incidents Page -->
+<div id="completedPage" style="display:none;">
 <h3>Completed Incidents</h3>
 <div id="completedList"></div>
+</div>
 
 </div>
 
@@ -132,7 +140,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // --- Firebase Config ---
-// Paste your Firebase config here
 const firebaseConfig = {
  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
@@ -141,15 +148,24 @@ const firebaseConfig = {
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a",
     measurementId: "G-CMZHVSVG8Z"
+
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const incidentsRef = collection(db,"incidents");
 
-// --- Show dispatch form ---
-window.showDispatch=function(){
+// --- Page Navigation ---
+window.showDispatch = function(){
 document.getElementById("dispatchPage").style.display="block";
+document.getElementById("activePage").style.display="block";
+document.getElementById("completedPage").style.display="none";
+}
+
+window.showCompletedPage = function(){
+document.getElementById("dispatchPage").style.display="none";
+document.getElementById("activePage").style.display="none";
+document.getElementById("completedPage").style.display="block";
 }
 
 // --- Add Incident ---
@@ -185,12 +201,13 @@ document.getElementById("dispatchPage").style.display="none";
 
 // --- Set Status ---
 window.setStatus=async function(id,status){
-const incidentDoc=doc(db,"incidents",id);
-const snap=await incidentDoc.get();
+const incidentDoc = doc(db,"incidents",id);
+const snap = await incidentDoc.get();
 const data = snap.data();
 let elapsed = data.totalElapsed;
+
 if(status==="StandingOff" || status==="Completed"){
-elapsed += Date.now()-data.startTime;
+elapsed += Date.now() - data.startTime;
 if(status==="StandingOff"){document.getElementById("standOffChime").play();}
 if(status==="Completed"){document.getElementById("completedSound").play();}
 await updateDoc(incidentDoc,{
@@ -207,13 +224,11 @@ startTime:Date.now()
 }
 }
 
-// --- Write report ---
-window.openReport=function(id){
-let report = prompt("Enter report for this incident:");
-if(report!==null){
-db.collection("incidents").doc(id).update({report});
+// --- Report Editing ---
+window.saveReport=async function(id){
+const reportText = document.getElementById("report-"+id).value;
+await updateDoc(doc(db,"incidents",id),{report:reportText});
 alert("Report saved.");
-}
 }
 
 // --- Clear Completed ---
@@ -241,7 +256,11 @@ let previousStatuses={};
 onSnapshot(incidentsRef,(snapshot)=>{
 let activeHTML="";
 let completedHTML="";
-snapshot.forEach(docSnap=>{
+
+// Sort newest first
+const docs = snapshot.docs.sort((a,b)=>b.data().startTime - a.data().startTime);
+
+docs.forEach(docSnap=>{
 const i=docSnap.data();
 const id=docSnap.id;
 const elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime + i.totalElapsed);
@@ -271,10 +290,13 @@ card+=`
 <button class="status-btn Busy" onclick="setStatus('${id}','Busy')">Busy</button>
 <button class="status-btn StandingOff" onclick="setStatus('${id}','StandingOff')">Standing Off</button>
 <button class="status-btn Completed" onclick="setStatus('${id}','Completed')">Completed</button>
-<button class="write-report" onclick="openReport('${id}')">Write Report</button>
+<button class="write-report" onclick="document.getElementById('report-'+id).style.display='block'">Write Report</button>
+<textarea id="report-${id}" style="width:100%;display:none;margin-top:5px;">${i.report}</textarea>
+<button class="write-report" onclick="saveReport('${id}')">Save Report</button>
 `;
 activeHTML+=card+"</div>";
 }else{
+card+=`<textarea style="width:100%;margin-top:5px;" readonly>${i.report}</textarea>`;
 completedHTML+=card+"</div>";
 }
 });
