@@ -22,6 +22,8 @@ button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 .green{background:green;color:white}
 .closeBtn{background:#444;color:white}
 .timer{color:#00e5ff;font-weight:bold}
+a.mapLink{color:#00e5ff;text-decoration:none;font-weight:bold}
+a.mapLink:hover{text-decoration:underline}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
 </style>
 </head>
@@ -40,8 +42,11 @@ button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 <div class="main">
 
 <section id="dashboard" style="display:block">
-<h2>Active Incidents</h2>
+<h2 class="sectionTitle">Active Incidents</h2>
 <div id="incidentBoard"></div>
+
+<h2 class="sectionTitle">Completed Incidents</h2>
+<div id="completedBoard"></div>
 </section>
 
 <section id="createIncident" style="display:none">
@@ -102,16 +107,32 @@ renderIncidents();
 
 // Render incidents
 function renderIncidents(){
-const div=document.getElementById("incidentBoard");
-div.innerHTML="";
+const activeDiv=document.getElementById("incidentBoard");
+const completedDiv=document.getElementById("completedBoard");
+activeDiv.innerHTML="";
+completedDiv.innerHTML="";
+
 incidents.forEach(i=>{
 let diff=Math.floor((Date.now()-i.created)/1000);
 let m=Math.floor(diff/60).toString().padStart(2,"0");
 let s=(diff%60).toString().padStart(2,"0");
+const mapUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(i.address);
 
-div.innerHTML+=`
+if(i.status==="Completed"){
+// Completed incidents
+completedDiv.innerHTML+=`
 <div class="card">
-<b>${i.priority}</b> - ${i.address}<br>
+<b>${i.priority}</b> - <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
+${i.description}<br>
+Contact: ${i.contact}<br>
+Total Time: <span class="timer">${m}:${s}</span>
+<button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
+</div>`;
+} else {
+// Active incidents
+activeDiv.innerHTML+=`
+<div class="card">
+<b>${i.priority}</b> - <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
 ${i.description}<br>
 Contact: ${i.contact}<br>
 Time: <span class="timer">${m}:${s}</span><br>
@@ -122,6 +143,7 @@ Status: <b>${i.status}</b><br>
 <button class="green" onclick="updateStatus(${i.id},'Completed')">Completed</button>
 <button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
 </div>`;
+}
 });
 }
 
