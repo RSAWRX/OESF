@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Emergency Operations Dashboard - Firebase Live</title>
+<title>Emergency Operations Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -12,52 +12,84 @@
 body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);}
 .light{--bg:#f4f6f8;--panel:#fff;--card:#e9ecef;--text:#000;}
 
-.header{position:sticky;top:0;display:flex;align-items:center;
-background:var(--panel);padding:10px 20px;z-index:100;border-bottom:2px solid #004080;}
+.header{
+position:sticky;top:0;display:flex;align-items:center;
+background:var(--panel);padding:10px 20px;z-index:100;
+border-bottom:2px solid #004080;
+}
 .header h1{margin:0;font-size:22px;}
 .header button{margin-left:auto;padding:6px 10px;}
 
 .container{display:flex;height:calc(100vh - 60px);}
-.sidebar{width:240px;background:var(--panel);display:flex;flex-direction:column;}
-.sidebar button{padding:16px;border:none;background:none;color:inherit;text-align:left;font-size:16px;cursor:pointer;border-bottom:1px solid #004080;}
+.sidebar{
+width:240px;background:var(--panel);display:flex;flex-direction:column;
+}
+.sidebar button{
+padding:16px;border:none;background:none;color:inherit;
+text-align:left;font-size:16px;cursor:pointer;
+border-bottom:1px solid #004080;
+}
 .sidebar button:hover{background:#004080;}
 
 .main{flex:1;padding:20px;overflow-y:auto;}
 section{display:none;}
 section.active{display:block;}
 
-.card{background:var(--card);padding:14px;border-radius:10px;margin:10px 0;}
+.card{
+background:var(--card);padding:14px;border-radius:10px;margin:10px 0;
+}
 .completed{opacity:0.5;}
 
-input,select,textarea{width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;}
+input,select,textarea{
+width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;
+}
 
-button.action{padding:10px 14px;background:#0074D9;color:white;border:none;border-radius:5px;cursor:pointer;margin-top:6px;}
+button.action{
+padding:10px 14px;background:#0074D9;color:white;
+border:none;border-radius:5px;cursor:pointer;margin-top:6px;
+}
 button.action:hover{background:#005fa3;}
 
-.status-btn{padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;cursor:pointer;}
+.status-btn{
+padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;
+cursor:pointer;
+}
 .Responding{background:orange;}
 .Busy{background:blue;}
 .StandingOff{background:red;}
 .Completed{background:green;}
 
-.timer{font-size:18px;font-weight:bold;padding:4px 8px;border-radius:6px;display:inline-block;margin:5px 0;}
+.timer{
+font-size:18px;font-weight:bold;padding:4px 8px;border-radius:6px;
+display:inline-block;margin:5px 0;
+}
+
 .sev-Low{background:#2ecc71;padding:4px;border-radius:4px;}
 .sev-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
 .sev-High{background:#e67e22;padding:4px;border-radius:4px;}
 .sev-Critical{background:#e74c3c;padding:4px;border-radius:4px;}
+
 .incident-desc{color:#8B0000;font-weight:bold;}
+
+@media print{
+body{background:white;color:black;}
+.sidebar,.header,button{display:none;}
+.card{page-break-inside:avoid;}
+}
 </style>
 </head>
 
 <body>
+
 <div class="header">
 <h1>Emergency Operations Dashboard</h1>
 <button onclick="toggleTheme()">🌗 Theme</button>
 </div>
 
 <div class="container">
+
 <div class="sidebar">
-<button onclick="show('responder')">Responder Info</button>
+<button onclick="show('responder')">Enter Responder Info</button>
 <button onclick="show('dashboard')">Dashboard</button>
 <button onclick="show('incidents')">Active Incidents</button>
 <button onclick="show('completed')">Completed Incidents</button>
@@ -65,6 +97,7 @@ button.action:hover{background:#005fa3;}
 </div>
 
 <div class="main">
+
 <!-- Responder Info -->
 <section id="responder">
 <h2>Responder Info</h2>
@@ -88,7 +121,8 @@ button.action:hover{background:#005fa3;}
 <input id="incAddress" placeholder="Address">
 <input id="incDesc" placeholder="Description">
 <select id="incSeverity">
-<option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+<option>Low</option><option>Medium</option>
+<option>High</option><option>Critical</option>
 </select>
 <input id="incCOS" placeholder="Contact On Scene">
 <button class="action" onclick="addIncident()">Add Incident</button>
@@ -106,41 +140,30 @@ button.action:hover{background:#005fa3;}
 <h2>OnDuty Roster</h2>
 <div id="rosterList"></div>
 </section>
+
 </div>
 </div>
-
-<audio id="respondSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
-<audio id="standingSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
 <script>
-// --- PASTE YOUR FIREBASE CONFIG HERE ---
-const firebaseConfig = {
-  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
-    authDomain: "oesf-e7a8e.firebaseapp.com",
-    projectId: "oesf-e7a8e",
-    storageBucket: "oesf-e7a8e.firebasestorage.app",
-    messagingSenderId: "844363489759",
-    appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+let responders = [];
+let incidents = [];
+let dashboardTimer = null;
 
-// Theme
+// ---------- Theme ----------
 function toggleTheme(){
 document.body.classList.toggle("light");
 localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
 }
 if(localStorage.getItem("theme")==="light") document.body.classList.add("light");
 
-// Page navigation
+// ---------- Page Navigation ----------
 function show(id){
 document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
+renderDashboard();
+renderIncidents();
+renderCompleted();
+renderRoster();
 }
 
 // ---------- Responder ----------
@@ -148,10 +171,15 @@ function addResponder(){
 const name = document.getElementById("resName").value.trim();
 const vehicle = document.getElementById("resVehicle").value.trim();
 if(!name || !vehicle){ alert("Enter both name and vehicle"); return; }
-db.ref("responders/"+name).set({name, vehicle, status:"Available"});
+if(responders.find(r => r.name === name)){ alert("Responder already exists"); return; }
+
+const res = {name, vehicle, status:"Available"};
+responders.push(res);
 document.getElementById("resName").value="";
 document.getElementById("resVehicle").value="";
 alert(`${name} entered as responder!`);
+renderRoster();
+renderDashboard();
 }
 
 // ---------- Incidents ----------
@@ -162,9 +190,8 @@ const sev = document.getElementById("incSeverity").value;
 const cos = document.getElementById("incCOS").value.trim();
 if(!addr || !desc || !sev){ alert("Fill in all fields"); return; }
 
-const incId = Date.now();
-db.ref("incidents/"+incId).set({
-id: incId,
+const inc = {
+id:Date.now(),
 address: addr,
 description: desc,
 severity: sev,
@@ -173,46 +200,36 @@ status: "Responding",
 assigned: [],
 start: Date.now(),
 elapsed:0
-});
+};
+incidents.unshift(inc); // newest on top
 document.getElementById("incAddress").value="";
 document.getElementById("incDesc").value="";
 document.getElementById("incCOS").value="";
-}
-
-// ---------- Status update ----------
-function updateIncidentStatus(incId, resName, newStatus){
-const incRef = db.ref("incidents/"+incId);
-incRef.once("value").then(snap=>{
-const inc = snap.val();
-if(!inc.assigned.includes(resName)) inc.assigned.push(resName);
-if(newStatus==="StandingOff" || newStatus==="Completed") inc.elapsed += Date.now() - inc.start;
-if(newStatus!=="Completed") inc.start = Date.now();
-inc.status = newStatus;
-incRef.set(inc);
-
-if(newStatus==="Responding") document.getElementById("respondSound").play();
-if(newStatus==="StandingOff") document.getElementById("standingSound").play();
-});
-}
-
-// ---------- Rendering ----------
-function renderAll(){
 renderIncidents();
-renderCompleted();
-renderRoster();
 renderDashboard();
 }
 
-// Active Incidents
+// ---------- Incident Status Update ----------
+function updateIncidentStatus(incId, resName, newStatus){
+const inc = incidents.find(i=>i.id===incId);
+if(!inc.assigned.includes(resName)) inc.assigned.push(resName);
+if(newStatus==="StandingOff" || newStatus==="Completed"){
+inc.elapsed += Date.now() - inc.start;
+}
+if(newStatus!=="Completed") inc.start = Date.now();
+inc.status = newStatus;
+renderIncidents();
+renderCompleted();
+renderDashboard();
+renderRoster();
+}
+
+// ---------- Render ----------
 function renderIncidents(){
 const list = document.getElementById("incidentList");
 list.innerHTML="";
-db.ref("incidents").orderByChild("start").on("value", snap=>{
-const data = snap.val();
-if(!data) return;
-list.innerHTML="";
-Object.values(data).filter(i=>i.status!=="Completed").sort((a,b)=>b.start - a.start).forEach(i=>{
-const t = i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
+incidents.filter(i => i.status!=="Completed").forEach(i => {
+const t = i.status==="StandingOff"?i.elapsed:i.elapsed + (Date.now()-i.start);
 const c = document.createElement("div");
 c.className="card";
 c.innerHTML=`
@@ -220,30 +237,23 @@ c.innerHTML=`
 <span class="incident-desc">${i.description}</span><br>
 COS: ${i.cos}<br>
 Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
-${Object.keys(i.assigned).map(r=>{
-return `<button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'${r}','Responding')">Responding</button>
-<button class="status-btn Busy" onclick="updateIncidentStatus(${i.id},'${r}','Busy')">Busy</button>
-<button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'${r}','StandingOff')">Standing Off</button>
-<button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'${r}','Completed')">Completed</button>`;
-}).join('')}
+<button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','Responding')">Responding</button>
+<button class="status-btn Busy" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','Busy')">Busy</button>
+<button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','Completed')">Completed</button>
 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}" target="_blank">Open Map</a>
 `;
 list.appendChild(c);
 });
-});
+}
 
-// Completed Incidents
 function renderCompleted(){
 const list = document.getElementById("completedList");
 list.innerHTML="";
-db.ref("incidents").orderByChild("start").on("value", snap=>{
-const data = snap.val();
-if(!data) return;
-list.innerHTML="";
-Object.values(data).filter(i=>i.status==="Completed").sort((a,b)=>b.start - a.start).forEach(i=>{
-const t = i.elapsed;
+incidents.filter(i=>i.status==="Completed").forEach(i=>{
 const c = document.createElement("div");
 c.className="card completed";
+const t = i.elapsed;
 c.innerHTML=`
 <b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
 <span class="incident-desc">${i.description}</span><br>
@@ -251,39 +261,24 @@ Time on scene: ${new Date(t).toISOString().substr(11,8)}
 `;
 list.appendChild(c);
 });
-});
 }
 
-// OnDuty Roster
 function renderRoster(){
 const list = document.getElementById("rosterList");
 list.innerHTML="";
-db.ref("responders").on("value", snap=>{
-const data = snap.val();
-if(!data) return;
-list.innerHTML="";
-Object.values(data).forEach(r=>{
+responders.forEach(r=>{
 const c = document.createElement("div");
 c.className="card";
 c.innerHTML=`${r.name} | ${r.vehicle} | ${r.status}`;
 list.appendChild(c);
 });
-});
 }
 
-// Dashboard
 function renderDashboard(){
 const dashInc = document.getElementById("dashboardIncidents");
-const dashRoster = document.getElementById("dashboardRoster");
 dashInc.innerHTML="";
-dashRoster.innerHTML="";
-
-db.ref("incidents").orderByChild("start").on("value", snap=>{
-const data = snap.val();
-if(!data) return;
-dashInc.innerHTML="";
-Object.values(data).filter(i=>i.status!=="Completed").sort((a,b)=>b.start - a.start).forEach(i=>{
-const t = i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
+incidents.filter(i=>i.status!=="Completed").forEach(i=>{
+const t = i.status==="StandingOff"?i.elapsed:i.elapsed + (Date.now()-i.start);
 const c = document.createElement("div");
 c.className="card";
 c.innerHTML=`
@@ -295,23 +290,25 @@ Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</spa
 `;
 dashInc.appendChild(c);
 });
-});
 
-db.ref("responders").on("value", snap=>{
-const data = snap.val();
-if(!data) return;
+const dashRoster = document.getElementById("dashboardRoster");
 dashRoster.innerHTML="";
-Object.values(data).forEach(r=>{
+responders.forEach(r=>{
 const c = document.createElement("div");
 c.className="card";
 c.innerHTML=`${r.name} | ${r.vehicle} | ${r.status}`;
 dashRoster.appendChild(c);
 });
-});
+}
 
-// Auto refresh timers
-setInterval(renderAll, 1000);
+// ---------- Auto-refresh dashboard timers ----------
+setInterval(()=>{
+renderIncidents();
+renderDashboard();
+},1000);
+
 show("responder");
 </script>
+
 </body>
 </html>
