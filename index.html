@@ -34,18 +34,28 @@ section{display:none;}
 
 <body>
 
-<header>Dispatch Command Center</header>
+<header>Dispatch Command Center OESF</header>
 
 <div class="container">
 
 <div class="sidebar">
+<button onclick="show('signup')">Sign Up</button>
 <button onclick="show('dashboard')">Dashboard</button>
 <button onclick="show('createIncident')">Create Incident</button>
 <button onclick="show('onDuty')">OnDuty Roster</button>
-<button onclick="show('signIn')">Sign In</button>
 </div>
 
 <div class="main">
+
+<!-- Sign Up Section -->
+<section id="signup">
+<h2>Responder Sign Up</h2>
+<input id="name" placeholder="Name">
+<input id="vehicleMake" placeholder="Vehicle Make & Model">
+<input id="vehicleColor" placeholder="Vehicle Color">
+<input id="vehicleReg" placeholder="Vehicle Registration">
+<button onclick="signUp()">Sign Up</button>
+</section>
 
 <!-- Dashboard Section -->
 <section id="dashboard">
@@ -77,21 +87,16 @@ section{display:none;}
 <div id="rosterBoard"></div>
 </section>
 
-<!-- Sign In Section -->
-<section id="signIn">
-<h2>Sign In</h2>
-<input id="userName" placeholder="Name">
-<input id="vehicle" placeholder="Vehicle (Make/Color/Reg)">
-<button onclick="signInUser()">Sign In</button>
-</section>
-
 </div>
 </div>
 
 <script>
 // --- Core data ---
 let incidents = [];
-let users = [];
+let responders = [];
+
+// --- Current logged in responder ---
+let currentResponder = null;
 
 // --- Show section ---
 function show(id){
@@ -99,28 +104,35 @@ document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
 }
 
-// --- Sign In ---
-function signInUser(){
-const name = userName.value.trim();
-const vehicle = vehicle.value.trim();
-if(!name){ alert("Enter name"); return; }
-// prevent duplicate sign-ins
-if(users.some(u=>u.name===name)){ alert("Already signed in"); return; }
-const newUser = {name, vehicle, status:"Available"};
-users.push(newUser);
-userName.value=""; vehicle.value="";
-alert(`${name} signed in!`);
+// --- Sign Up ---
+function signUp(){
+const nameV = document.getElementById("name").value.trim();
+const makeV = document.getElementById("vehicleMake").value.trim();
+const colorV = document.getElementById("vehicleColor").value.trim();
+const regV = document.getElementById("vehicleReg").value.trim();
+
+if(!nameV || !makeV || !colorV || !regV){ alert("Fill all fields"); return; }
+
+// prevent duplicate names
+if(responders.some(r=>r.name===nameV)){
+alert("This responder already exists");
+return;
+}
+
+currentResponder = {name:nameV,vehicle:`${makeV} ${colorV} (${regV})`,status:"Available"};
+responders.push(currentResponder);
+
 renderRoster();
+alert(`Signed up as ${nameV}`);
 show("dashboard");
-renderIncidents();
 }
 
 // --- Render OnDuty Roster ---
 function renderRoster(){
 const rosterDiv = document.getElementById("rosterBoard");
 rosterDiv.innerHTML="";
-users.forEach(u=>{
-rosterDiv.innerHTML+=`<div class="card"><b>${u.name}</b> - ${u.vehicle} | ${u.status}</div>`;
+responders.forEach(u=>{
+rosterDiv.innerHTML+=`<div class="card"><b>${u.name}</b> | ${u.vehicle} | Status: ${u.status}</div>`;
 });
 }
 
@@ -145,15 +157,14 @@ show("dashboard");
 }
 
 // --- Responder Status ---
-function responderStatus(incidentId,responderName,status){
+function responderStatus(incidentId,status){
 const inc = incidents.find(i=>i.id===incidentId);
-const user = users.find(u=>u.name===responderName);
-if(!inc || !user) return;
+if(!inc || !currentResponder) return;
 
 // Check if responder already assigned
-let r = inc.responders.find(x=>x.name===responderName);
+let r = inc.responders.find(x=>x.name===currentResponder.name);
 if(!r){
-r={name:responderName,status:"Responding",start:Date.now(),elapsed:0,commander:false};
+r={name:currentResponder.name,status:"Responding",start:Date.now(),elapsed:0,commander:false};
 inc.responders.push(r);
 }
 
@@ -175,10 +186,11 @@ r.start=Date.now();
 
 r.status=status;
 
-// Update user status in roster
-user.status=status;
+// Update responder status
+let res = responders.find(x=>x.name===currentResponder.name);
+res.status=status;
 
-// If all responders Completed, mark incident completed
+// Mark incident completed if all responders done
 if(inc.responders.length>0 && inc.responders.every(x=>x.status==="Completed")){
 inc.completed=true;
 inc.status="Completed";
@@ -231,9 +243,13 @@ activeDiv.innerHTML+=`
 <span class="incDesc">${i.description}</span><br>
 Contact: ${i.contact}<br>
 Responder: 
-<select onchange="responderStatus(${i.id},this.value,this.options[this.selectedIndex].text)">
-<option disabled selected>Select Responder</option>
-${users.map(u=>`<option>${u.name}</option>`).join("")}
+<select onchange="responderStatus(${i.id},this.value)">
+<option disabled selected>Select Status</option>
+<option>Responding</option>
+<option>On Scene</option>
+<option>Standing Off</option>
+<option>Busy</option>
+<option>Completed</option>
 </select><br>
 ${i.responders.map(r=>`${r.name} (<span style="color:${statusColor(r.status)}">${r.status}${r.commander?" Commander":""}</span>)`).join(", ")}<br>
 <button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
@@ -252,9 +268,10 @@ renderIncidents();
 },1000);
 
 // --- Init ---
-show("signIn");
+show("signup");
 renderRoster();
 renderIncidents();
 </script>
+
 </body>
 </html>
