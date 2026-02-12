@@ -2,312 +2,382 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Emergency Operations Dashboard</title>
+<title>Incident Command Center</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root{
---bg:#001f3f;--panel:#00264d;--card:#003366;--text:white;
+body{
+    margin:0;
+    font-family:Segoe UI;
+    background:#0b1e35;
+    color:white;
 }
-body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);}
-.light{--bg:#f4f6f8;--panel:#fff;--card:#e9ecef;--text:#000;}
-
-.header{
-position:sticky;top:0;display:flex;align-items:center;
-background:var(--panel);padding:10px 20px;z-index:100;
-border-bottom:2px solid #004080;
+header{
+    background:#132c4d;
+    padding:15px;
+    font-size:20px;
+    text-align:center;
 }
-.header h1{margin:0;font-size:22px;}
-.header button{margin-left:auto;padding:6px 10px;}
-
-.container{display:flex;height:calc(100vh - 60px);}
+.container{
+    display:flex;
+    height:100vh;
+}
 .sidebar{
-width:240px;background:var(--panel);display:flex;flex-direction:column;
+    width:220px;
+    background:#132c4d;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
 }
 .sidebar button{
-padding:16px;border:none;background:none;color:inherit;
-text-align:left;font-size:16px;cursor:pointer;
-border-bottom:1px solid #004080;
+    width:100%;
+    margin:6px 0;
+    padding:12px;
+    background:#1f3f66;
+    border:none;
+    color:white;
+    cursor:pointer;
+    font-size:15px;
+    border-radius:6px;
 }
-.sidebar button:hover{background:#004080;}
-
-.main{flex:1;padding:20px;overflow-y:auto;}
-section{display:none;}
-section.active{display:block;}
-
+.sidebar button:hover{
+    background:#29598f;
+}
+.main{
+    flex:1;
+    padding:20px;
+    overflow:auto;
+}
 .card{
-background:var(--card);padding:14px;border-radius:10px;margin:10px 0;
+    background:#1f3f66;
+    padding:15px;
+    margin:12px 0;
+    border-radius:8px;
+    line-height:1.5;
 }
-.completed{opacity:0.5;}
-
-input,select,textarea{
-width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;
+input,select{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    font-size:16px;
+    border-radius:6px;
+    border:none;
 }
-
 button.action{
-padding:10px 14px;background:#0074D9;color:white;
-border:none;border-radius:5px;cursor:pointer;margin-top:6px;
+    padding:10px 14px;
+    margin:6px 6px 6px 0;
+    border:none;
+    cursor:pointer;
+    border-radius:6px;
+    font-size:14px;
 }
-button.action:hover{background:#005fa3;}
-
-.status-btn{
-padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;
-cursor:pointer;
+.orange{background:orange;color:white;}
+.blue{background:#0099ff;color:white;}
+.red{background:red;color:white;}
+.green{background:green;color:white;}
+.closeBtn{background:#444;color:white;}
+.incDesc{
+    color:#ff4444;
+    font-weight:bold;
+    font-size:16px;
 }
-.Responding{background:orange;}
-.Busy{background:blue;}
-.StandingOff{background:red;}
-.Completed{background:green;}
-
+.sectionTitle{
+    margin-top:25px;
+    border-bottom:1px solid #29598f;
+    padding-bottom:6px;
+}
+a.mapLink{
+    color:#00e5ff;
+    font-weight:bold;
+    text-decoration:none;
+}
 .timer{
-font-size:18px;font-weight:bold;padding:4px 8px;border-radius:6px;
-display:inline-block;margin:5px 0;
+    color:#00e5ff;
+    font-weight:bold;
+    margin-top:5px;
+}
+section{display:none;}
+.statBox{
+    background:#1f3f66;
+    padding:20px;
+    margin:15px 0;
+    border-radius:8px;
+    font-size:18px;
 }
 
-.sev-Low{background:#2ecc71;padding:4px;border-radius:4px;}
-.sev-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
-.sev-High{background:#e67e22;padding:4px;border-radius:4px;}
-.sev-Critical{background:#e74c3c;padding:4px;border-radius:4px;}
-
-.incident-desc{color:#8B0000;font-weight:bold;}
-
-@media print{
-body{background:white;color:black;}
-.sidebar,.header,button{display:none;}
-.card{page-break-inside:avoid;}
+/* MOBILE */
+@media (max-width:768px){
+    .container{flex-direction:column;height:auto;}
+    .sidebar{width:100%;flex-direction:row;}
+    .sidebar button{flex:1;margin:4px;font-size:13px;padding:10px;}
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<h1>Emergency Operations Dashboard</h1>
-<button onclick="toggleTheme()">🌗 Theme</button>
-</div>
+<header>🚨 Incident Command Center</header>
 
 <div class="container">
 
 <div class="sidebar">
-<button onclick="show('responder')">Enter Responder Info</button>
 <button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('incidents')">Active Incidents</button>
-<button onclick="show('completed')">Completed Incidents</button>
-<button onclick="show('roster')">OnDuty Roster</button>
+<button onclick="show('createIncident')">Create Incident</button>
+<button onclick="show('statistics')">Statistics</button>
 </div>
 
 <div class="main">
 
-<!-- Responder Info -->
-<section id="responder">
-<h2>Responder Info</h2>
-<input id="resName" placeholder="Name">
-<input id="resVehicle" placeholder="Vehicle (Make/Model/Color/Reg)">
-<button class="action" onclick="addResponder()">Enter</button>
-</section>
-
-<!-- Dashboard -->
 <section id="dashboard">
-<h2>Dashboard</h2>
-<h3>Active Incidents</h3>
-<div id="dashboardIncidents"></div>
-<h3>On Duty Responders</h3>
-<div id="dashboardRoster"></div>
+<h2 class="sectionTitle">Active Incidents</h2>
+<div id="activeIncidents"></div>
+
+<h2 class="sectionTitle">Completed Incidents</h2>
+<div id="completedIncidents"></div>
 </section>
 
-<!-- Active Incidents -->
-<section id="incidents">
-<h2>Active Incidents</h2>
-<input id="incAddress" placeholder="Address">
-<input id="incDesc" placeholder="Description">
-<select id="incSeverity">
-<option>Low</option><option>Medium</option>
-<option>High</option><option>Critical</option>
+<section id="createIncident">
+<h2>Create Incident</h2>
+<input id="address" placeholder="Address">
+<input id="description" placeholder="Description">
+<input id="contact" placeholder="Contact On Scene">
+<select id="priority">
+<option>Low</option>
+<option>Medium</option>
+<option>High</option>
+<option>Critical</option>
 </select>
-<input id="incCOS" placeholder="Contact On Scene">
-<button class="action" onclick="addIncident()">Add Incident</button>
-<div id="incidentList"></div>
+<button onclick="createIncident()">Create Incident</button>
 </section>
 
-<!-- Completed Incidents -->
-<section id="completed">
-<h2>Completed Incidents</h2>
-<div id="completedList"></div>
-</section>
-
-<!-- OnDuty Roster -->
-<section id="roster">
-<h2>OnDuty Roster</h2>
-<div id="rosterList"></div>
+<section id="statistics">
+<h2>Incident Statistics</h2>
+<div id="statsContent"></div>
 </section>
 
 </div>
 </div>
 
-<script>
-let responders = [];
-let incidents = [];
-let dashboardTimer = null;
+<!-- AUDIO ALERTS -->
+<audio id="respondingSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+<audio id="standingOffSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
 
-// ---------- Theme ----------
-function toggleTheme(){
-document.body.classList.toggle("light");
-localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
-}
-if(localStorage.getItem("theme")==="light") document.body.classList.add("light");
+<!-- FIREBASE SCRIPT -->
+<script type="module">
 
-// ---------- Page Navigation ----------
-function show(id){
-document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-renderDashboard();
-renderIncidents();
-renderCompleted();
-renderRoster();
-}
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot,
+  updateDoc,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ---------- Responder ----------
-function addResponder(){
-const name = document.getElementById("resName").value.trim();
-const vehicle = document.getElementById("resVehicle").value.trim();
-if(!name || !vehicle){ alert("Enter both name and vehicle"); return; }
-if(responders.find(r => r.name === name)){ alert("Responder already exists"); return; }
-
-const res = {name, vehicle, status:"Available"};
-responders.push(res);
-document.getElementById("resName").value="";
-document.getElementById("resVehicle").value="";
-alert(`${name} entered as responder!`);
-renderRoster();
-renderDashboard();
-}
-
-// ---------- Incidents ----------
-function addIncident(){
-const addr = document.getElementById("incAddress").value.trim();
-const desc = document.getElementById("incDesc").value.trim();
-const sev = document.getElementById("incSeverity").value;
-const cos = document.getElementById("incCOS").value.trim();
-if(!addr || !desc || !sev){ alert("Fill in all fields"); return; }
-
-const inc = {
-id:Date.now(),
-address: addr,
-description: desc,
-severity: sev,
-cos: cos,
-status: "Responding",
-assigned: [],
-start: Date.now(),
-elapsed:0
+/* 🔥 PASTE YOUR FIREBASE CONFIG BELOW */
+const firebaseConfig = {
+  apiKey: "PASTE_HERE",
+  authDomain: "PASTE_HERE",
+  projectId: "PASTE_HERE",
+  storageBucket: "PASTE_HERE",
+  messagingSenderId: "PASTE_HERE",
+  appId: "PASTE_HERE"
 };
-incidents.unshift(inc); // newest on top
-document.getElementById("incAddress").value="";
-document.getElementById("incDesc").value="";
-document.getElementById("incCOS").value="";
-renderIncidents();
-renderDashboard();
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+let incidents = [];
+
+/* REQUEST PERMISSIONS FOR BROWSER NOTIFICATIONS */
+if ("Notification" in window && Notification.permission !== "granted") {
+    Notification.requestPermission();
 }
 
-// ---------- Incident Status Update ----------
-function updateIncidentStatus(incId, resName, newStatus){
-const inc = incidents.find(i=>i.id===incId);
-if(!inc.assigned.includes(resName)) inc.assigned.push(resName);
-if(newStatus==="StandingOff" || newStatus==="Completed"){
-inc.elapsed += Date.now() - inc.start;
-}
-if(newStatus!=="Completed") inc.start = Date.now();
-inc.status = newStatus;
-renderIncidents();
-renderCompleted();
-renderDashboard();
-renderRoster();
-}
+/* REALTIME LISTENER */
+onSnapshot(collection(db, "incidents"), (snapshot) => {
+    let oldIncidents = incidents.map(i=>i.id);
+    incidents = [];
+    snapshot.forEach((docSnap) => {
+        incidents.push({ id: docSnap.id, ...docSnap.data() });
+    });
 
-// ---------- Render ----------
-function renderIncidents(){
-const list = document.getElementById("incidentList");
-list.innerHTML="";
-incidents.filter(i => i.status!=="Completed").forEach(i => {
-const t = i.status==="StandingOff"?i.elapsed:i.elapsed + (Date.now()-i.start);
-const c = document.createElement("div");
-c.className="card";
-c.innerHTML=`
-<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
-<span class="incident-desc">${i.description}</span><br>
-COS: ${i.cos}<br>
-Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
-<button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','Responding')">Responding</button>
-<button class="status-btn Busy" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','Busy')">Busy</button>
-<button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','StandingOff')">Standing Off</button>
-<button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'${i.assigned[0]||'Unassigned'}','Completed')">Completed</button>
-<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}" target="_blank">Open Map</a>
-`;
-list.appendChild(c);
-});
-}
+    /* Check for new incidents */
+    incidents.forEach(i=>{
+        if(!oldIncidents.includes(i.id)){
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("New Incident!", {
+                    body: `${i.description} at ${i.address}`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/564/564619.png"
+                });
+            }
+        }
+    });
 
-function renderCompleted(){
-const list = document.getElementById("completedList");
-list.innerHTML="";
-incidents.filter(i=>i.status==="Completed").forEach(i=>{
-const c = document.createElement("div");
-c.className="card completed";
-const t = i.elapsed;
-c.innerHTML=`
-<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
-<span class="incident-desc">${i.description}</span><br>
-Time on scene: ${new Date(t).toISOString().substr(11,8)}
-`;
-list.appendChild(c);
-});
-}
-
-function renderRoster(){
-const list = document.getElementById("rosterList");
-list.innerHTML="";
-responders.forEach(r=>{
-const c = document.createElement("div");
-c.className="card";
-c.innerHTML=`${r.name} | ${r.vehicle} | ${r.status}`;
-list.appendChild(c);
-});
-}
-
-function renderDashboard(){
-const dashInc = document.getElementById("dashboardIncidents");
-dashInc.innerHTML="";
-incidents.filter(i=>i.status!=="Completed").forEach(i=>{
-const t = i.status==="StandingOff"?i.elapsed:i.elapsed + (Date.now()-i.start);
-const c = document.createElement("div");
-c.className="card";
-c.innerHTML=`
-<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
-<span class="incident-desc">${i.description}</span><br>
-Assigned: ${i.assigned.join(", ") || "None"}<br>
-Status: ${i.status}<br>
-Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span>
-`;
-dashInc.appendChild(c);
+    render();
 });
 
-const dashRoster = document.getElementById("dashboardRoster");
-dashRoster.innerHTML="";
-responders.forEach(r=>{
-const c = document.createElement("div");
-c.className="card";
-c.innerHTML=`${r.name} | ${r.vehicle} | ${r.status}`;
-dashRoster.appendChild(c);
-});
+/* CREATE INCIDENT */
+window.createIncident = async function(){
+    if(!address.value || !description.value){
+        alert("Address and Description required");
+        return;
+    }
+
+    await addDoc(collection(db, "incidents"), {
+        address: address.value,
+        description: description.value,
+        contact: contact.value,
+        priority: priority.value,
+        status: "Active",
+        responder: null,
+        created: Date.now()
+    });
+
+    address.value="";
+    description.value="";
+    contact.value="";
+};
+
+/* UPDATE STATUS */
+window.updateStatus = async function(id,status){
+
+    const inc = incidents.find(i=>i.id===id);
+    if(!inc) return;
+
+    let responder = inc.responder || {
+        status: status,
+        start: Date.now(),
+        elapsed: 0
+    };
+
+    if(status==="Standing Off" || status==="Completed"){
+        if(responder.start){
+            responder.elapsed += Date.now() - responder.start;
+            responder.start = null;
+        }
+    } else {
+        if(!responder.start){
+            responder.start = Date.now();
+        }
+    }
+
+    responder.status = status;
+
+    await updateDoc(doc(db,"incidents",id),{
+        responder: responder,
+        status: status==="Completed"?"Completed":"Active"
+    });
+
+    /* PLAY ALERT SOUNDS */
+    if(status==="Responding") document.getElementById("respondingSound").play();
+    if(status==="Standing Off") document.getElementById("standingOffSound").play();
+};
+
+/* REMOVE INCIDENT */
+window.removeIncident = async function(id){
+    await deleteDoc(doc(db,"incidents",id));
+};
+
+/* FORMAT TIMER */
+function formatTime(ms){
+    const total=Math.floor(ms/1000);
+    const m=Math.floor(total/60);
+    const s=total%60;
+    return `${m}m ${s}s`;
 }
 
-// ---------- Auto-refresh dashboard timers ----------
-setInterval(()=>{
-renderIncidents();
-renderDashboard();
-},1000);
+/* RENDER UI */
+function render(){
 
-show("responder");
+    const activeDiv=document.getElementById("activeIncidents");
+    const completedDiv=document.getElementById("completedIncidents");
+    activeDiv.innerHTML="";
+    completedDiv.innerHTML="";
+
+    incidents.sort((a,b)=>b.created-a.created);
+
+    incidents.forEach(i=>{
+
+        let timerDisplay="";
+        let statusText="Not Assigned";
+
+        if(i.responder){
+            let total=i.responder.elapsed||0;
+            if(i.responder.start){
+                total+=Date.now()-i.responder.start;
+            }
+            timerDisplay=`<div class="timer">Time: ${formatTime(total)}</div>`;
+            statusText=i.responder.status;
+        }
+
+        const mapUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(i.address);
+
+        const card=`
+        <div class="card">
+            <b>${i.priority}</b> -
+            <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
+            <span class="incDesc">${i.description}</span><br>
+            Contact: ${i.contact||"N/A"}<br>
+            Status: ${statusText}
+            ${timerDisplay}
+
+            ${i.status!=="Completed"?`
+            <div>
+                <button class="action orange" onclick="updateStatus('${i.id}','Responding')">Responding</button>
+                <button class="action blue" onclick="updateStatus('${i.id}','Busy')">Busy</button>
+                <button class="action red" onclick="updateStatus('${i.id}','Standing Off')">Standing Off</button>
+                <button class="action green" onclick="updateStatus('${i.id}','Completed')">Completed</button>
+            </div>`:""}
+
+            <br>
+            <button class="action closeBtn" onclick="removeIncident('${i.id}')">Remove</button>
+        </div>
+        `;
+
+        if(i.status==="Completed") completedDiv.innerHTML+=card;
+        else activeDiv.innerHTML+=card;
+    });
+
+    renderStats();
+}
+
+/* STATISTICS */
+function renderStats(){
+    const total=incidents.length;
+    const active=incidents.filter(i=>i.status==="Active").length;
+    const completed=incidents.filter(i=>i.status==="Completed").length;
+
+    let totalTime=0;
+    let count=0;
+
+    incidents.forEach(i=>{
+        if(i.status==="Completed" && i.responder){
+            totalTime+=i.responder.elapsed||0;
+            count++;
+        }
+    });
+
+    const avg=count?formatTime(totalTime/count):"N/A";
+
+    document.getElementById("statsContent").innerHTML=`
+        <div class="statBox">Total Incidents: ${total}</div>
+        <div class="statBox">Active Incidents: ${active}</div>
+        <div class="statBox">Completed Incidents: ${completed}</div>
+        <div class="statBox">Average Response Time: ${avg}</div>
+    `;
+}
+
+/* NAVIGATION */
+window.show=function(id){
+    document.querySelectorAll("section").forEach(s=>s.style.display="none");
+    document.getElementById(id).style.display="block";
+};
+
+show("dashboard");
+
 </script>
 
 </body>
