@@ -1,83 +1,34 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Emergency Operations Dashboard</title>
+<title>Emergency Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{margin:0;font-family:Segoe UI,Arial;background:#001f3f;color:white;}
-.header{position:sticky;top:0;background:#00264d;padding:10px 15px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:2px solid #004080;}
-.header h1{margin:0;font-size:20px;}
-#clock{font-weight:bold;}
-
-.container{display:flex;height:calc(100vh - 60px);}
-.sidebar{width:220px;background:#00264d;display:flex;flex-direction:column;}
-.sidebar button{padding:14px;border:none;background:none;color:white;text-align:left;cursor:pointer;border-bottom:1px solid #004080;font-size:16px;}
+body{margin:0;font-family:Arial;background:#001f3f;color:white;}
+.header{background:#00264d;padding:10px;display:flex;justify-content:space-between;align-items:center;}
+.container{display:flex;height:calc(100vh - 50px);}
+.sidebar{width:200px;background:#00264d;display:flex;flex-direction:column;}
+.sidebar button{padding:12px;border:none;background:none;color:white;text-align:left;cursor:pointer;border-bottom:1px solid #004080;}
 .sidebar button:hover{background:#004080;}
-
 .main{flex:1;padding:15px;overflow-y:auto;}
 section{display:none;}
 section.active{display:block;}
-
-.card{background:#003366;padding:12px;border-radius:10px;margin:12px 0;}
-
-.status-btn{
-  padding:8px 10px;
-  border:none;
-  border-radius:6px;
-  margin:6px 6px 6px 0;
-  color:white;
-  cursor:pointer;
-  font-size:14px;
-}
-
+.card{background:#003366;padding:12px;border-radius:8px;margin:12px 0;}
+.status-btn{margin:6px 6px 6px 0;padding:6px 10px;border:none;border-radius:6px;color:white;cursor:pointer;}
 .Responding{background:orange;}
 .Busy{background:blue;}
 .StandingOff{background:red;}
 .Completed{background:green;}
-
-.timer{
-  font-size:16px;
-  font-weight:bold;
-  padding:4px 6px;
-  border-radius:6px;
-  display:inline-block;
-  margin:6px 0;
-}
-
-.incident-desc{color:#ff9999;font-weight:bold;}
-
-.map-link{
-  display:inline-block;
-  background:#0074D9;
-  color:white;
-  padding:6px 10px;
-  border-radius:6px;
-  text-decoration:none;
-  margin:6px 0;
-}
-.map-link:hover{background:#005fa3;}
-
-input, select, textarea, button.action{
-  width:100%;
-  box-sizing:border-box;
-  margin:6px 0;
-  font-size:16px;
-  padding:8px;
-}
-
-button.action{
-  border-radius:6px;
-  cursor:pointer;
-}
-
+.map-link{display:inline-block;background:#0074D9;color:white;padding:6px 10px;border-radius:6px;text-decoration:none;margin:6px 0;}
+input,select,textarea,button.action{width:100%;margin:6px 0;padding:8px;box-sizing:border-box;}
 textarea{min-height:120px;}
 
-@media (max-width:768px){
-  .container{flex-direction:column;}
-  .sidebar{width:100%;flex-direction:row;overflow-x:auto;}
-  .sidebar button{flex:1;white-space:nowrap;font-size:14px;padding:10px;}
+@media(max-width:768px){
+.container{flex-direction:column;}
+.sidebar{width:100%;flex-direction:row;}
+.sidebar button{flex:1;font-size:14px;}
 }
 </style>
 </head>
@@ -85,216 +36,195 @@ textarea{min-height:120px;}
 <body>
 
 <div class="header">
-<h1>Dispatch Operations Dashboard</h1>
+<h2>Emergency Dashboard</h2>
 <div id="clock"></div>
 </div>
 
 <div class="container">
-
 <div class="sidebar">
-<button onclick="show('addIncident')">Add Incident</button>
-<button onclick="show('activeIncidents')">Active</button>
-<button onclick="show('completedIncidents')">Completed</button>
+<button onclick="show('add')">Add</button>
+<button onclick="show('active')">Active</button>
+<button onclick="show('completed')">Completed</button>
 </div>
 
 <div class="main">
 
-<!-- ADD INCIDENT -->
-<section id="addIncident">
-<h2>Create Incident</h2>
+<section id="add">
+<h3>Create Incident</h3>
 <input id="address" placeholder="Address">
 <input id="description" placeholder="Description">
 <select id="priority">
-<option>Low</option>
-<option>Medium</option>
-<option>High</option>
-<option>Critical</option>
+<option>Low</option><option>Medium</option>
+<option>High</option><option>Critical</option>
 </select>
 <input id="cos" placeholder="Contact On Scene">
 <button class="action" onclick="addIncident()">Add Incident</button>
 </section>
 
-<!-- ACTIVE -->
-<section id="activeIncidents">
-<h2>Active Incidents</h2>
-<div id="incidentList"></div>
+<section id="active">
+<h3>Active Incidents</h3>
+<div id="activeList"></div>
 </section>
 
-<!-- COMPLETED -->
-<section id="completedIncidents">
-<h2>Completed Incidents</h2>
+<section id="completed">
+<h3>Completed Incidents</h3>
 <div id="completedList"></div>
 </section>
 
-<!-- REPORT PAGE -->
-<section id="reportPage">
-<h2>Incident Report</h2>
+<section id="report">
+<h3>Write Report</h3>
 <div id="reportInfo"></div>
-<textarea id="reportText" placeholder="Write detailed incident report here..."></textarea>
+<textarea id="reportText"></textarea>
 <button class="action" onclick="submitReport()">Submit Report</button>
 </section>
 
 </div>
 </div>
 
-<script>
-let incidents=[];
-let completedIncidents=[];
-let activeReportId=null;
+<!-- FIREBASE -->
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, serverTimestamp } 
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+   apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+    authDomain: "oesf-e7a8e.firebaseapp.com",
+    projectId: "oesf-e7a8e",
+    storageBucket: "oesf-e7a8e.firebasestorage.app",
+    messagingSenderId: "844363489759",
+    appId: "1:844363489759:web:2b56fe51cc28053dbe246a",
+    measurementId: "G-CMZHVSVG8Z"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const incidentsRef = collection(db, "incidents");
+
+let activeReportId = null;
 
 // CLOCK
-function updateClock(){
-  document.getElementById("clock").textContent=new Date().toLocaleString();
-}
-setInterval(updateClock,1000);
-updateClock();
+setInterval(()=> {
+document.getElementById("clock").innerText=new Date().toLocaleString();
+},1000);
 
-// NAVIGATION
-function show(id){
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
+// NAV
+window.show=function(id){
+document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+};
+show("add");
 
 // ADD INCIDENT
-function addIncident(){
-  const address=addressInput("address");
-  const desc=addressInput("description");
-  const priority=addressInput("priority");
-  const cos=addressInput("cos");
+window.addIncident=async function(){
+const address=document.getElementById("address").value.trim();
+const description=document.getElementById("description").value.trim();
+const priority=document.getElementById("priority").value;
+const cos=document.getElementById("cos").value.trim();
+if(!address||!description||!cos){alert("Fill all fields");return;}
 
-  if(!address||!desc||!priority||!cos){alert("Fill all fields");return;}
+await addDoc(incidentsRef,{
+address,description,priority,cos,
+status:"Responding",
+startTime:Date.now(),
+totalElapsed:0,
+timerStopped:false,
+report:null,
+created:serverTimestamp()
+});
 
-  const incident={
-    id:Date.now(),
-    address,description:desc,priority,cos,
-    status:"Responding",
-    startTime:Date.now(),
-    totalElapsed:0,
-    timerStopped:false,
-    report:null
-  };
+document.getElementById("address").value="";
+document.getElementById("description").value="";
+document.getElementById("cos").value="";
+show("active");
+};
 
-  incidents.unshift(incident);
-  renderIncidents();
-  clearForm();
-  show('activeIncidents');
+// REALTIME SYNC
+onSnapshot(incidentsRef,(snapshot)=>{
+let activeHTML="";
+let completedHTML="";
+
+snapshot.forEach(docSnap=>{
+const i=docSnap.data();
+const id=docSnap.id;
+
+let elapsed=i.totalElapsed;
+if(!i.timerStopped){
+elapsed+=Date.now()-i.startTime;
 }
 
-function addressInput(id){return document.getElementById(id).value.trim();}
-function clearForm(){
-  ["address","description","cos"].forEach(id=>document.getElementById(id).value="");
-}
+let card=`
+<div class="card">
+<b>${i.address}</b><br>
+${i.description}<br>
+Priority: ${i.priority}<br>
+COS: ${i.cos}<br>
+Time: ${formatTime(elapsed)}<br>
+<a class="map-link" target="_blank"
+href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">
+Open Map</a><br>
+`;
 
-// TIMER FORMAT
+if(i.status!=="Completed"){
+card+=`
+<button class="status-btn Responding" onclick="setStatus('${id}','Responding')">Responding</button>
+<button class="status-btn Busy" onclick="setStatus('${id}','Busy')">Busy</button>
+<button class="status-btn StandingOff" onclick="stopTimer('${id}','StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="stopTimer('${id}','Completed')">Completed</button>
+<button class="status-btn Completed" onclick="openReport('${id}')">Write Report</button>
+`;
+card+="</div>";
+activeHTML+=card;
+}else{
+card+=i.report?`<b>Report:</b><br>${i.report}`:"";
+card+="</div>";
+completedHTML+=card;
+}
+});
+
+document.getElementById("activeList").innerHTML=activeHTML;
+document.getElementById("completedList").innerHTML=completedHTML;
+});
+
+// STATUS
+window.setStatus=async function(id,status){
+await updateDoc(doc(db,"incidents",id),{status});
+};
+
+window.stopTimer=async function(id,status){
+const ref=doc(db,"incidents",id);
+await updateDoc(ref,{
+status,
+timerStopped:true,
+totalElapsed:Date.now()
+});
+};
+
+// REPORT
+window.openReport=function(id){
+activeReportId=id;
+document.getElementById("reportInfo").innerHTML="Write report:";
+show("report");
+};
+
+window.submitReport=async function(){
+const text=document.getElementById("reportText").value.trim();
+if(!text){alert("Write report");return;}
+await updateDoc(doc(db,"incidents",activeReportId),{report:text});
+document.getElementById("reportText").value="";
+show("active");
+};
+
+// FORMAT TIME
 function formatTime(ms){
-  let sec=Math.floor(ms/1000);
-  let h=Math.floor(sec/3600);
-  let m=Math.floor((sec%3600)/60);
-  let s=sec%60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+let sec=Math.floor(ms/1000);
+let h=Math.floor(sec/3600);
+let m=Math.floor((sec%3600)/60);
+let s=sec%60;
+return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
-// RENDER ACTIVE
-function renderIncidents(){
-  const container=document.getElementById("incidentList");
-  container.innerHTML="";
-  incidents.forEach(i=>{
-    if(!i.timerStopped){
-      i.currentElapsed=i.totalElapsed+(Date.now()-i.startTime);
-    }else{
-      i.currentElapsed=i.totalElapsed;
-    }
-
-    const div=document.createElement("div");
-    div.className="card";
-    div.innerHTML=`
-      <b>${i.address}</b><br>
-      <span class="incident-desc">${i.description}</span><br>
-      Priority: ${i.priority}<br>
-      COS: ${i.cos}<br>
-      <div class="timer">${formatTime(i.currentElapsed)}</div><br>
-      <a class="map-link" target="_blank"
-      href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">
-      Open Map</a><br>
-      <button class="status-btn Responding" onclick="setStatus(${i.id},'Responding')">Responding</button>
-      <button class="status-btn Busy" onclick="setStatus(${i.id},'Busy')">Busy</button>
-      <button class="status-btn StandingOff" onclick="stopTimer(${i.id},'StandingOff')">Standing Off</button>
-      <button class="status-btn Completed" onclick="stopTimer(${i.id},'Completed')">Completed</button>
-      <button class="status-btn Completed" onclick="openReport(${i.id})">Write Report</button>
-    `;
-    container.appendChild(div);
-  });
-}
-
-// STATUS UPDATE (does NOT stop timer)
-function setStatus(id,status){
-  const i=incidents.find(x=>x.id===id);
-  if(!i)return;
-  i.status=status;
-  renderIncidents();
-}
-
-// STOP TIMER
-function stopTimer(id,status){
-  const i=incidents.find(x=>x.id===id);
-  if(!i)return;
-  if(!i.timerStopped){
-    i.totalElapsed+=Date.now()-i.startTime;
-    i.timerStopped=true;
-  }
-  i.status=status;
-
-  if(status==="Completed"){
-    completedIncidents.unshift(i);
-    incidents=incidents.filter(x=>x.id!==id);
-  }
-
-  renderIncidents();
-  renderCompleted();
-}
-
-// REPORT PAGE
-function openReport(id){
-  const i=incidents.find(x=>x.id===id);
-  if(!i)return;
-  activeReportId=id;
-  document.getElementById("reportInfo").innerHTML=
-    `<b>${i.address}</b><br>${i.description}`;
-  show('reportPage');
-}
-
-function submitReport(){
-  const text=document.getElementById("reportText").value.trim();
-  if(!text){alert("Write report first.");return;}
-  const i=incidents.find(x=>x.id===activeReportId);
-  if(i){i.report=text;}
-  document.getElementById("reportText").value="";
-  activeReportId=null;
-  show('activeIncidents');
-}
-
-// RENDER COMPLETED
-function renderCompleted(){
-  const container=document.getElementById("completedList");
-  container.innerHTML="";
-  completedIncidents.forEach(i=>{
-    const div=document.createElement("div");
-    div.className="card";
-    div.innerHTML=`
-      <b>${i.address}</b><br>
-      ${i.description}<br>
-      Time: ${formatTime(i.totalElapsed)}<br>
-      ${i.report?`<b>Report:</b><br>${i.report}`:""}
-    `;
-    container.appendChild(div);
-  });
-}
-
-// LIVE TIMER UPDATE
-setInterval(renderIncidents,1000);
-
-show('addIncident');
 </script>
-
 </body>
 </html>
