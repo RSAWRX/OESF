@@ -228,7 +228,7 @@ function render(){
             ${i.status!=="Completed" ? `
             <div class="statusButtons">
                 <button class="action orange" onclick="updateStatus(${i.id},'Responding')">Responding</button>
-                <button class="action blue" onclick="updateStatus(${i.id},'On Scene')">On Scene</button>
+                <button class="action blue" onclick="updateStatus(${i.id},'Busy')">On Scene</button>
                 <button class="action red" onclick="updateStatus(${i.id},'Standing Off')">Standing Off</button>
                 <button class="action green" onclick="updateStatus(${i.id},'Completed')">Completed</button>
             </div>
