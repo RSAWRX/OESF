@@ -9,8 +9,7 @@
 body{
     font-family:Arial;
     margin:0;
-    background:#001f3f;
-    color:white;
+    background:#f4f6f9;
 }
 
 header{
@@ -41,7 +40,7 @@ button{
 .report-btn{background:white;color:black;}
 
 .card{
-    background:#003366;
+    background:white;
     padding:15px;
     margin-bottom:15px;
     border-radius:8px;
@@ -68,13 +67,12 @@ button{
 
 .status-btn{
     margin-top:5px;
-    font-weight:bold;
 }
 
-.Responding{background:orange;color:white;}
-.Busy{background:yellow;color:black;}
-.StandingOff{background:#0066cc;color:white;}
-.Completed{background:green;color:white;}
+.Responding{background:#2196F3;color:white;} /* Blue */
+.Busy{background:#ff9800;color:white;}       /* Orange */
+.StandingOff{background:#9c27b0;color:white;} /* Purple */
+.Completed{background:#4CAF50;color:white;}  /* Green */
 
 @media(max-width:600px){
     button{
@@ -93,6 +91,7 @@ button{
 <div class="container">
 
     <button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
+    <button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
     <button class="clear-btn" onclick="clearAll()">Delete All Incidents</button>
 
     <div id="dispatchPage" style="display:none;">
@@ -119,15 +118,15 @@ button{
 
 <!-- AUDIO -->
 <audio id="alarmSound">
-    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+<source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
 </audio>
 
 <audio id="standOffChime">
-    <source src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" type="audio/ogg">
+<source src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" type="audio/ogg">
 </audio>
 
 <audio id="completedSound">
-    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+<source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
 </audio>
 
 <script type="module">
@@ -138,7 +137,7 @@ import {
 
 // 🔹 Firebase config here
 const firebaseConfig = {
-    apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+     apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
@@ -173,7 +172,6 @@ window.addIncident=async function(){
         report:""
     });
 
-    // 🔔 Alarm
     const alarm=document.getElementById("alarmSound");
     alarm.volume=1.0;
     alarm.play();
@@ -209,7 +207,6 @@ window.setStatus = async function(id, status){
         completedTime: status==="Completed"?Date.now():data.completedTime
     });
 
-    // Play sounds
     if(status === "StandingOff") document.getElementById("standOffChime").play();
     if(status === "Completed") document.getElementById("completedSound").play();
 };
@@ -218,6 +215,16 @@ window.addReport = async function(id){
     const report = prompt("Write your report:");
     const incidentRef = doc(db,"incidents",id);
     await updateDoc(incidentRef,{report});
+}
+
+window.clearCompleted = async function(){
+    onSnapshot(incidentsRef,(snapshot)=>{
+        snapshot.forEach(docSnap=>{
+            if(docSnap.data().status==="Completed"){
+                deleteDoc(doc(db,"incidents",docSnap.id));
+            }
+        });
+    });
 }
 
 window.clearAll = async function(){
@@ -243,7 +250,6 @@ onSnapshot(incidentsRef,(snapshot)=>{
     let activeHTML="";
     let completedHTML="";
 
-    // Sort newest first
     const sorted = snapshot.docs.sort((a,b)=>b.data().startTime - a.data().startTime);
 
     sorted.forEach(docSnap=>{
