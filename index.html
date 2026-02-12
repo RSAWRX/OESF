@@ -2,62 +2,68 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Emergency Dispatch</title>
+<title>Emergency Command System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{margin:0;font-family:Segoe UI;background:#0b1e35;color:white}
 header{background:#132c4d;padding:15px;font-size:20px}
 .container{display:flex;height:100vh}
-.sidebar{width:240px;background:#132c4d;padding:10px}
-.sidebar button{width:100%;margin:5px 0;padding:10px;background:#1f3f66;border:none;color:white;cursor:pointer}
+.sidebar{width:250px;background:#132c4d;padding:10px}
+.sidebar button{width:100%;margin:6px 0;padding:10px;background:#1f3f66;border:none;color:white;cursor:pointer}
 .sidebar button:hover{background:#29598f}
 .main{flex:1;padding:20px;overflow:auto}
 .card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px}
-input,select{width:100%;padding:8px;margin:6px 0}
-button.action{background:#0074D9;color:white;border:none;padding:6px 10px;margin:3px 2px;cursor:pointer}
-.sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
+input,select,textarea{width:100%;padding:8px;margin:6px 0}
+button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
+.orange{background:orange}
+.blue{background:#0099ff}
+.red{background:#cc0000;color:white}
+.green{background:green;color:white}
 .timer{color:#00e5ff;font-weight:bold}
-.commander{color:#ffcc00;font-weight:bold}
+.sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
+#map{height:250px;background:#081421;margin-top:20px;border-radius:6px;padding:10px}
 </style>
 </head>
 
 <body>
 
-<header>🚨 Emergency Dispatch System</header>
+<header>🚨 Emergency Command Center</header>
 
 <div class="container">
 
 <div class="sidebar">
 <button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('createIncident')">Create Incident</button>
+<button id="createBtn" onclick="show('createIncident')">Create Incident</button>
 <button onclick="show('roster')">OnDuty Roster</button>
-<button id="signinBtn" onclick="show('login')">Sign In</button>
+<button onclick="show('archive')">Incident Archive</button>
+<button onclick="logout()">Logout</button>
 </div>
 
 <div class="main">
 
 <section id="login">
-<h2>Responder Sign In</h2>
-<input id="name" placeholder="Responder Name">
-<input id="vehicleMakeModel" placeholder="Vehicle Make & Model">
-<input id="vehicleColour" placeholder="Vehicle Colour">
-<input id="registration" placeholder="Vehicle Registration">
-<button class="action" onclick="signIn()">Sign In</button>
+<h2>Login</h2>
+<select id="role">
+<option value="responder">Responder</option>
+<option value="dispatcher">Dispatcher</option>
+</select>
+<input id="name" placeholder="Name">
+<input id="vehicle" placeholder="Vehicle (Responder only)">
+<input id="registration" placeholder="Registration (Responder only)">
+<button onclick="login()">Login</button>
 </section>
 
 <section id="dashboard" style="display:none">
-<h2>Live Dashboard</h2>
-<div class="sectionTitle">Active Incidents</div>
+<h2>Active Incidents</h2>
 <div id="incidentBoard"></div>
-<div class="sectionTitle">OnDuty Roster</div>
-<div id="rosterBoard"></div>
+<div id="map">🗺 GPS Simulation Map Area</div>
 </section>
 
 <section id="createIncident" style="display:none">
 <h2>Create Incident</h2>
-<input id="address" placeholder="Incident Address">
-<input id="description" placeholder="Incident Description">
+<input id="address" placeholder="Address">
+<input id="description" placeholder="Description">
 <input id="contact" placeholder="Contact On Scene">
 <select id="priority">
 <option>Low</option>
@@ -65,12 +71,17 @@ button.action{background:#0074D9;color:white;border:none;padding:6px 10px;margin
 <option>High</option>
 <option>Critical</option>
 </select>
-<button class="action" onclick="createIncident()">Create Incident</button>
+<button onclick="createIncident()">Create</button>
 </section>
 
 <section id="roster" style="display:none">
 <h2>OnDuty Roster</h2>
-<div id="rosterList"></div>
+<div id="rosterBoard"></div>
+</section>
+
+<section id="archive" style="display:none">
+<h2>Archived Incidents</h2>
+<div id="archiveBoard"></div>
 </section>
 
 </div>
@@ -79,12 +90,11 @@ button.action{background:#0074D9;color:white;border:none;padding:6px 10px;margin
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, getDocs, query, where, getDoc }
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, getDocs, query, where, getDoc, deleteDoc }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* 🔴 INSERT YOUR FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+/* INSERT CONFIG */
+const firebaseConfig = {apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
@@ -92,199 +102,191 @@ const firebaseConfig = {
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
 
 let currentUser=null;
+let unitDocId=null;
 let incidentsCache=[];
 
-/* Navigation */
-window.show=function(id){
+/* NAV */
+window.show=id=>{
 document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
 }
 
-/* SIGN IN */
-window.signIn=async function(){
+/* LOGIN */
+window.login=async()=>{
 
-if(!name.value||!vehicleMakeModel.value||!vehicleColour.value||!registration.value){
-alert("Complete all fields.");
-return;
-}
+if(!name.value){alert("Enter name");return;}
 
-const q=query(collection(db,"units"), where("registration","==",registration.value));
+currentUser={name:name.value,role:role.value};
+
+if(role.value==="responder"){
+
+if(!vehicle.value||!registration.value){alert("Complete fields");return;}
+
+const q=query(collection(db,"units"),where("registration","==",registration.value));
 const snap=await getDocs(q);
+if(!snap.empty){alert("Already signed in");return;}
 
-if(!snap.empty){
-alert("Vehicle already signed in.");
-return;
+const docRef=await addDoc(collection(db,"units"),{
+name:name.value,
+vehicle:vehicle.value,
+registration:registration.value,
+status:"Available",
+gps:{lat:-26.2,lng:28.0}
+});
+unitDocId=docRef.id;
 }
 
-currentUser={
-name:name.value,
-vehicleMakeModel:vehicleMakeModel.value,
-vehicleColour:vehicleColour.value,
-registration:registration.value,
-status:"Available"
-};
+if(role.value==="dispatcher"){
+document.getElementById("createBtn").style.display="block";
+}else{
+document.getElementById("createBtn").style.display="none";
+}
 
-await addDoc(collection(db,"units"),currentUser);
-
-document.getElementById("signinBtn").style.display="none";
 show("dashboard");
 }
 
-/* CREATE INCIDENT */
-window.createIncident=async function(){
-
-if(!address.value||!description.value||!contact.value){
-alert("Complete all fields.");
-return;
+/* LOGOUT */
+window.logout=async()=>{
+if(unitDocId){
+await deleteDoc(doc(db,"units",unitDocId));
+}
+location.reload();
 }
 
+/* CREATE INCIDENT */
+window.createIncident=async()=>{
 await addDoc(collection(db,"incidents"),{
 address:address.value,
 description:description.value,
 contact:contact.value,
 priority:priority.value,
 created:Date.now(),
-responders:[],
-commander:null
+responders:[]
 });
-
-alert("Incident Created.");
+alert("Created");
 show("dashboard");
 }
 
-/* ADD RESPONDER */
-window.addResponder=async function(id){
+/* RESPONDER STATUS */
+async function updateStatus(incidentId,status,color){
 
-const incidentRef=doc(db,"incidents",id);
-const snap=await getDoc(incidentRef);
-const data=snap.data();
+const ref=doc(db,"incidents",incidentId);
+const snap=await getDoc(ref);
+let data=snap.data();
+let responders=data.responders||[];
 
-if(data.responders.find(r=>r.registration===currentUser.registration)) return;
+let existing=responders.find(r=>r.unitId===unitDocId);
 
-let responders=data.responders;
+if(status==="Completed"){
+responders=responders.filter(r=>r.unitId!==unitDocId);
+await updateDoc(doc(db,"units",unitDocId),{status:"Available"});
+}else{
 
-responders.push({
-registration:currentUser.registration,
-name:currentUser.name,
-status:"Responding"
-});
-
-await updateDoc(incidentRef,{responders:responders});
+if(!existing){
+responders.push({unitId:unitDocId,name:currentUser.name,status,color,report:""});
+}else{
+responders=responders.map(r=>r.unitId===unitDocId?{...r,status,color}:r);
 }
 
-/* UPDATE STATUS */
-window.updateResponderStatus=async function(id,newStatus){
-
-const incidentRef=doc(db,"incidents",id);
-const snap=await getDoc(incidentRef);
-const data=snap.data();
-
-let responders=data.responders;
-let commander=data.commander;
-
-responders=responders.map(r=>{
-if(r.registration===currentUser.registration){
-
-if(newStatus==="On Scene" && !commander){
-commander=currentUser.registration;
+await updateDoc(doc(db,"units",unitDocId),{status:status});
 }
 
-return {...r,status:newStatus};
+if(responders.length===0){
+await addDoc(collection(db,"archivedIncidents"),data);
+await deleteDoc(ref);
+return;
 }
+
+await updateDoc(ref,{responders});
+}
+
+/* WRITE REPORT */
+window.saveReport=async(incidentId,text)=>{
+const ref=doc(db,"incidents",incidentId);
+const snap=await getDoc(ref);
+let data=snap.data();
+let responders=data.responders.map(r=>{
+if(r.unitId===unitDocId){r.report=text;}
 return r;
 });
-
-await updateDoc(incidentRef,{
-responders:responders,
-commander:commander
-});
+await updateDoc(ref,{responders});
 }
 
-/* LIVE INCIDENT LISTENER */
-onSnapshot(collection(db,"incidents"),snapshot=>{
+/* LIVE INCIDENTS */
+onSnapshot(collection(db,"incidents"),snap=>{
 incidentsCache=[];
-snapshot.forEach(docSnap=>{
-incidentsCache.push({id:docSnap.id,...docSnap.data()});
-});
-renderIncidents();
+snap.forEach(d=>incidentsCache.push({id:d.id,...d.data()}));
+render();
 });
 
-/* TIMER RENDER LOOP */
-setInterval(renderIncidents,1000);
-
-function renderIncidents(){
-
+function render(){
 const div=document.getElementById("incidentBoard");
-if(!div) return;
-
 div.innerHTML="";
 
-incidentsCache.forEach(data=>{
+incidentsCache.forEach(i=>{
 
-let diff=Math.floor((Date.now()-data.created)/1000);
+let diff=Math.floor((Date.now()-i.created)/1000);
 let m=Math.floor(diff/60).toString().padStart(2,"0");
 let s=(diff%60).toString().padStart(2,"0");
 
-let respondersHTML="None";
-
-if(data.responders.length>0){
-respondersHTML="";
-data.responders.forEach(r=>{
-respondersHTML+=`
-${r.name} (${r.registration}) - ${r.status}
-${data.commander===r.registration?'<span class="commander"> - Commander</span>':""}
-<br>`;
+let respondersHTML="";
+(i.responders||[]).forEach(r=>{
+respondersHTML+=`<div>${r.name} - ${r.status}</div>`;
 });
-}
 
 div.innerHTML+=`
 <div class="card">
-<b>${data.priority}</b><br>
-Description: ${data.description}<br>
-Address: ${data.address}<br>
-Contact On Scene: ${data.contact}<br>
-Time Elapsed: <span class="timer">${m}:${s}</span><br>
-Responders:<br>${respondersHTML}
-<br>
-${currentUser && !data.responders.find(r=>r.registration===currentUser.registration)
-? `<button class="action" onclick="addResponder('${data.id}')">Respond</button>`:""}
-
-${currentUser && data.responders.find(r=>r.registration===currentUser.registration)
-? `
-<button class="action" onclick="updateResponderStatus('${data.id}','Responding')">Responding</button>
-<button class="action" onclick="updateResponderStatus('${data.id}','On Scene')">On Scene</button>
-<button class="action" onclick="updateResponderStatus('${data.id}','Busy')">Busy</button>
-<button class="action" onclick="updateResponderStatus('${data.id}','Completed')">Completed</button>
+<b>${i.priority}</b><br>
+${i.description}<br>
+${i.address}<br>
+Contact: ${i.contact}<br>
+Time: <span class="timer">${m}:${s}</span><br>
+${respondersHTML}
+${currentUser?.role==="responder"?`
+<button class="orange" onclick="updateStatus('${i.id}','Responding','orange')">Responding</button>
+<button class="blue" onclick="updateStatus('${i.id}','Standing Off','blue')">Standing Off</button>
+<button class="red" onclick="updateStatus('${i.id}','Busy','red')">Busy</button>
+<button class="green" onclick="updateStatus('${i.id}','Completed','green')">Completed</button>
+<textarea placeholder="Report" onchange="saveReport('${i.id}',this.value)"></textarea>
 `:""}
 </div>`;
 });
 }
 
+setInterval(render,1000);
+
 /* LIVE ROSTER */
-onSnapshot(collection(db,"units"),snapshot=>{
-const dash=document.getElementById("rosterBoard");
-const roster=document.getElementById("rosterList");
-
-dash.innerHTML="";
-roster.innerHTML="";
-
-snapshot.forEach(doc=>{
-const u=doc.data();
-let card=`
+onSnapshot(collection(db,"units"),snap=>{
+const div=document.getElementById("rosterBoard");
+div.innerHTML="";
+snap.forEach(d=>{
+let u=d.data();
+div.innerHTML+=`
 <div class="card">
-<b>${u.name}</b><br>
-Vehicle: ${u.vehicleMakeModel}<br>
-Colour: ${u.vehicleColour}<br>
-Registration: ${u.registration}<br>
+${u.name}<br>
+Vehicle: ${u.vehicle}<br>
+Reg: ${u.registration}<br>
 Status: ${u.status}
 </div>`;
+});
+});
 
-dash.innerHTML+=card;
-roster.innerHTML+=card;
+/* ARCHIVE */
+onSnapshot(collection(db,"archivedIncidents"),snap=>{
+const div=document.getElementById("archiveBoard");
+div.innerHTML="";
+snap.forEach(d=>{
+let i=d.data();
+div.innerHTML+=`
+<div class="card">
+<b>${i.priority}</b><br>
+${i.description}<br>
+Archived
+</div>`;
 });
 });
 
