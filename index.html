@@ -6,34 +6,172 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{margin:0;font-family:Segoe UI;background:#0b1e35;color:white;}
-header{background:#132c4d;padding:15px;font-size:20px;}
-.container{display:flex;height:100vh;}
-.sidebar{width:220px;background:#132c4d;padding:10px;}
-.sidebar button{width:100%;margin:6px 0;padding:10px;background:#1f3f66;border:none;color:white;cursor:pointer;}
-.sidebar button:hover{background:#29598f;}
-.main{flex:1;padding:20px;overflow:auto;}
-.card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px;}
-input,select{width:100%;padding:8px;margin:6px 0;}
-button.action{padding:6px 10px;margin:4px 4px 4px 0;border:none;cursor:pointer;border-radius:4px;}
+body{
+    margin:0;
+    font-family:Segoe UI;
+    background:#0b1e35;
+    color:white;
+}
+
+header{
+    background:#132c4d;
+    padding:15px;
+    font-size:20px;
+    text-align:center;
+}
+
+.container{
+    display:flex;
+    height:100vh;
+}
+
+/* SIDEBAR */
+.sidebar{
+    width:220px;
+    background:#132c4d;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+}
+
+.sidebar button{
+    width:100%;
+    margin:6px 0;
+    padding:12px;
+    background:#1f3f66;
+    border:none;
+    color:white;
+    cursor:pointer;
+    font-size:15px;
+    border-radius:6px;
+}
+
+.sidebar button:hover{
+    background:#29598f;
+}
+
+/* MAIN */
+.main{
+    flex:1;
+    padding:20px;
+    overflow:auto;
+}
+
+.card{
+    background:#1f3f66;
+    padding:15px;
+    margin:12px 0;
+    border-radius:8px;
+    line-height:1.5;
+}
+
+input,select{
+    width:100%;
+    padding:12px;
+    margin:8px 0;
+    font-size:16px;
+    border-radius:6px;
+    border:none;
+}
+
+button.action{
+    padding:10px 14px;
+    margin:6px 6px 6px 0;
+    border:none;
+    cursor:pointer;
+    border-radius:6px;
+    font-size:14px;
+}
+
 .orange{background:orange;color:white;}
 .blue{background:#0099ff;color:white;}
 .red{background:red;color:white;}
 .green{background:green;color:white;}
 .closeBtn{background:#444;color:white;}
-.incDesc{color:#ff4444;font-weight:bold;}
-.sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px;}
-a.mapLink{color:#00e5ff;font-weight:bold;text-decoration:none;}
-a.mapLink:hover{text-decoration:underline;}
+
+.incDesc{
+    color:#ff4444;
+    font-weight:bold;
+    font-size:16px;
+}
+
+.sectionTitle{
+    margin-top:25px;
+    border-bottom:1px solid #29598f;
+    padding-bottom:6px;
+}
+
+a.mapLink{
+    color:#00e5ff;
+    font-weight:bold;
+    text-decoration:none;
+}
+
+a.mapLink:hover{
+    text-decoration:underline;
+}
+
 section{display:none;}
-.timer{color:#00e5ff;font-weight:bold;}
-.statusButtons{margin-top:8px;}
+
+.timer{
+    color:#00e5ff;
+    font-weight:bold;
+    margin-top:5px;
+}
+
+.statusButtons{
+    margin-top:10px;
+}
+
+/* MOBILE */
+@media (max-width: 768px){
+
+    .container{
+        flex-direction:column;
+        height:auto;
+    }
+
+    .sidebar{
+        width:100%;
+        flex-direction:row;
+        justify-content:space-around;
+        padding:8px;
+    }
+
+    .sidebar button{
+        flex:1;
+        margin:4px;
+        font-size:14px;
+        padding:10px;
+    }
+
+    .main{
+        padding:15px;
+    }
+
+    .card{
+        padding:14px;
+        font-size:15px;
+    }
+
+    button.action{
+        width:100%;
+        margin:6px 0;
+        font-size:15px;
+    }
+
+    .statusButtons{
+        display:flex;
+        flex-direction:column;
+    }
+
+}
 </style>
 </head>
 
 <body>
 
-<header>Dispatch Command Center</header>
+<header>🚨 Incident Command Center</header>
 
 <div class="container">
 <div class="sidebar">
@@ -72,9 +210,7 @@ section{display:none;}
 
 let incidents = [];
 
-/* =========================
-   LOCAL STORAGE
-========================= */
+/* STORAGE */
 
 function saveData(){
     localStorage.setItem("incidentsData", JSON.stringify(incidents));
@@ -87,18 +223,14 @@ function loadData(){
     }
 }
 
-/* =========================
-   NAVIGATION
-========================= */
+/* NAVIGATION */
 
 function show(id){
     document.querySelectorAll("section").forEach(sec=>sec.style.display="none");
     document.getElementById(id).style.display="block";
 }
 
-/* =========================
-   CREATE INCIDENT
-========================= */
+/* CREATE INCIDENT */
 
 function createIncident(){
     if(!address.value || !description.value){
@@ -127,9 +259,7 @@ function createIncident(){
     show("dashboard");
 }
 
-/* =========================
-   UPDATE STATUS
-========================= */
+/* UPDATE STATUS */
 
 function updateStatus(id, status){
     const inc = incidents.find(i=>i.id===id);
@@ -164,9 +294,7 @@ function updateStatus(id, status){
     render();
 }
 
-/* =========================
-   REMOVE INCIDENT
-========================= */
+/* REMOVE */
 
 function removeIncident(id){
     incidents = incidents.filter(i=>i.id!==id);
@@ -174,9 +302,7 @@ function removeIncident(id){
     render();
 }
 
-/* =========================
-   TIMER FORMAT
-========================= */
+/* TIMER FORMAT */
 
 function formatTime(ms){
     const total = Math.floor(ms/1000);
@@ -185,9 +311,7 @@ function formatTime(ms){
     return `${m}m ${s}s`;
 }
 
-/* =========================
-   RENDER
-========================= */
+/* RENDER */
 
 function render(){
     const activeDiv = document.getElementById("activeIncidents");
@@ -248,15 +372,11 @@ function render(){
     });
 }
 
-/* =========================
-   AUTO TIMER REFRESH
-========================= */
+/* AUTO TIMER */
 
 setInterval(render,1000);
 
-/* =========================
-   INIT
-========================= */
+/* INIT */
 
 loadData();
 show("dashboard");
