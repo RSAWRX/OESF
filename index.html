@@ -15,9 +15,10 @@ header{background:#132c4d;padding:15px;font-size:20px}
 .main{flex:1;padding:20px;overflow:auto}
 .card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px}
 input,select,textarea{width:100%;padding:8px;margin:6px 0}
-button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:pointer}
+button.action{background:#0074D9;color:white;border:none;padding:8px;cursor:pointer;margin:3px 0}
 .timer{color:#00d4ff;font-weight:bold}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
+.commander{color:#ffcc00;font-weight:bold}
 </style>
 </head>
 
@@ -36,7 +37,6 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 
 <div class="main">
 
-<!-- SIGN IN -->
 <section id="login">
 <h2>Responder Sign In</h2>
 <input id="name" placeholder="Responder Name">
@@ -46,7 +46,6 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 <button class="action" onclick="signIn()">Sign In</button>
 </section>
 
-<!-- DASHBOARD -->
 <section id="dashboard" style="display:none">
 <h2>Live Dashboard</h2>
 
@@ -55,10 +54,8 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 
 <div class="sectionTitle">OnDuty Roster</div>
 <div id="rosterBoard"></div>
-
 </section>
 
-<!-- CREATE INCIDENT -->
 <section id="createIncident" style="display:none">
 <h2>Create Incident</h2>
 <input id="address" placeholder="Incident Address">
@@ -72,7 +69,6 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 <button class="action" onclick="createIncident()">Create Incident</button>
 </section>
 
-<!-- ROSTER PAGE -->
 <section id="roster" style="display:none">
 <h2>OnDuty Roster</h2>
 <div id="rosterList"></div>
@@ -84,7 +80,7 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc }
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, arrayUnion }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* 🔴 REPLACE WITH YOUR FIREBASE CONFIG */
@@ -95,6 +91,7 @@ const firebaseConfig = {
     storageBucket: "oesf-e7a8e.firebasestorage.app",
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
+
 };
 
 const app = initializeApp(firebaseConfig);
@@ -110,7 +107,6 @@ document.getElementById(id).style.display="block";
 
 /* SIGN IN */
 window.signIn=async function(){
-
 if(!name.value||!vehicleMakeModel.value||!vehicleColour.value||!registration.value){
 alert("Complete all fields.");
 return;
@@ -126,10 +122,8 @@ status:"Available"
 
 await addDoc(collection(db,"units"),currentUser);
 
-alert("Signed in successfully.");
-
-/* Hide sign-in page after login */
 document.getElementById("signinBtn").style.display="none";
+alert("Signed in.");
 show("dashboard");
 }
 
@@ -139,11 +133,30 @@ await addDoc(collection(db,"incidents"),{
 address:address.value,
 description:description.value,
 priority:priority.value,
-status:"Waiting",
-assigned:null,
-created:Date.now()
+created:Date.now(),
+responders:[],
+commander:null
 });
 alert("Incident Created.");
+}
+
+/* ACCEPT INCIDENT */
+window.acceptIncident=async function(id){
+await updateDoc(doc(db,"incidents",id),{
+responders: arrayUnion({
+registration:currentUser.registration,
+name:currentUser.name,
+status:"Responding",
+onSceneTime:null
+})
+});
+}
+
+/* UPDATE STATUS */
+window.updateResponderStatus=async function(incidentId,newStatus){
+const incidentRef=doc(db,"incidents",incidentId);
+
+const snap=await incidentRef.get();
 }
 
 /* LIVE INCIDENT DASHBOARD */
@@ -159,29 +172,32 @@ let diff=Math.floor((Date.now()-data.created)/1000);
 let m=Math.floor(diff/60).toString().padStart(2,"0");
 let s=(diff%60).toString().padStart(2,"0");
 
+let respondersHTML="None";
+
+if(data.responders.length>0){
+respondersHTML="";
+data.responders.forEach(r=>{
+respondersHTML+=`
+${r.name} (${r.registration}) - ${r.status}
+${data.commander===r.registration?'<span class="commander"> - Commander</span>':""}
+<br>`;
+});
+}
+
 div.innerHTML+=`
 <div class="card">
 <b>${data.priority}</b><br>
 Description: ${data.description}<br>
 Address: ${data.address}<br>
 Time Elapsed: <span class="timer">${m}:${s}</span><br>
-Responding: ${data.assigned||"None"}
-<br><br>
-${currentUser && !data.assigned ? 
-`<button onclick="acceptIncident('${id}')">Respond</button>`:""}
+Responders:<br>${respondersHTML}
+<br>
+${currentUser?`<button onclick="acceptIncident('${id}')">Respond</button>`:""}
 </div>`;
 });
 });
 
-/* ACCEPT INCIDENT */
-window.acceptIncident=async function(id){
-await updateDoc(doc(db,"incidents",id),{
-assigned:currentUser.registration,
-status:"Responding"
-});
-}
-
-/* LIVE ROSTER (Used in Dashboard + Roster page) */
+/* LIVE ROSTER */
 onSnapshot(collection(db,"units"),snapshot=>{
 const dash=document.getElementById("rosterBoard");
 const roster=document.getElementById("rosterList");
@@ -196,8 +212,7 @@ let card=`
 <b>${u.name}</b><br>
 Vehicle: ${u.vehicleMakeModel}<br>
 Colour: ${u.vehicleColour}<br>
-Registration: ${u.registration}<br>
-Status: ${u.status}
+Registration: ${u.registration}
 </div>`;
 
 dash.innerHTML+=card;
