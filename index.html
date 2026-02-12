@@ -2,398 +2,317 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Incident Command Center</title>
+<title>Emergency Operations Dashboard - Firebase Live</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-    margin:0;
-    font-family:Segoe UI;
-    background:#0b1e35;
-    color:white;
+:root{
+--bg:#001f3f;--panel:#00264d;--card:#003366;--text:white;
 }
-header{
-    background:#132c4d;
-    padding:15px;
-    font-size:20px;
-    text-align:center;
-}
-.container{
-    display:flex;
-    height:100vh;
-}
-.sidebar{
-    width:220px;
-    background:#132c4d;
-    padding:10px;
-    display:flex;
-    flex-direction:column;
-}
-.sidebar button{
-    width:100%;
-    margin:6px 0;
-    padding:12px;
-    background:#1f3f66;
-    border:none;
-    color:white;
-    cursor:pointer;
-    font-size:15px;
-    border-radius:6px;
-}
-.sidebar button:hover{
-    background:#29598f;
-}
-.main{
-    flex:1;
-    padding:20px;
-    overflow:auto;
-}
-.card{
-    background:#1f3f66;
-    padding:15px;
-    margin:12px 0;
-    border-radius:8px;
-    line-height:1.5;
-}
-input,select{
-    width:100%;
-    padding:12px;
-    margin:8px 0;
-    font-size:16px;
-    border-radius:6px;
-    border:none;
-}
-button.action{
-    padding:10px 14px;
-    margin:6px 6px 6px 0;
-    border:none;
-    cursor:pointer;
-    border-radius:6px;
-    font-size:14px;
-}
-.orange{background:orange;color:white;}
-.blue{background:#0099ff;color:white;}
-.red{background:red;color:white;}
-.green{background:green;color:white;}
-.closeBtn{background:#444;color:white;}
-.incDesc{
-    color:#ff4444;
-    font-weight:bold;
-    font-size:16px;
-}
-.sectionTitle{
-    margin-top:25px;
-    border-bottom:1px solid #29598f;
-    padding-bottom:6px;
-}
-a.mapLink{
-    color:#00e5ff;
-    font-weight:bold;
-    text-decoration:none;
-}
-.timer{
-    color:#00e5ff;
-    font-weight:bold;
-    margin-top:5px;
-}
-section{display:none;}
-.statBox{
-    background:#1f3f66;
-    padding:20px;
-    margin:15px 0;
-    border-radius:8px;
-    font-size:18px;
-}
+body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);}
+.light{--bg:#f4f6f8;--panel:#fff;--card:#e9ecef;--text:#000;}
 
-/* MOBILE */
-@media (max-width:768px){
-    .container{flex-direction:column;height:auto;}
-    .sidebar{width:100%;flex-direction:row;}
-    .sidebar button{flex:1;margin:4px;font-size:13px;padding:10px;}
-}
+.header{position:sticky;top:0;display:flex;align-items:center;
+background:var(--panel);padding:10px 20px;z-index:100;border-bottom:2px solid #004080;}
+.header h1{margin:0;font-size:22px;}
+.header button{margin-left:auto;padding:6px 10px;}
+
+.container{display:flex;height:calc(100vh - 60px);}
+.sidebar{width:240px;background:var(--panel);display:flex;flex-direction:column;}
+.sidebar button{padding:16px;border:none;background:none;color:inherit;text-align:left;font-size:16px;cursor:pointer;border-bottom:1px solid #004080;}
+.sidebar button:hover{background:#004080;}
+
+.main{flex:1;padding:20px;overflow-y:auto;}
+section{display:none;}
+section.active{display:block;}
+
+.card{background:var(--card);padding:14px;border-radius:10px;margin:10px 0;}
+.completed{opacity:0.5;}
+
+input,select,textarea{width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;}
+
+button.action{padding:10px 14px;background:#0074D9;color:white;border:none;border-radius:5px;cursor:pointer;margin-top:6px;}
+button.action:hover{background:#005fa3;}
+
+.status-btn{padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;cursor:pointer;}
+.Responding{background:orange;}
+.Busy{background:blue;}
+.StandingOff{background:red;}
+.Completed{background:green;}
+
+.timer{font-size:18px;font-weight:bold;padding:4px 8px;border-radius:6px;display:inline-block;margin:5px 0;}
+.sev-Low{background:#2ecc71;padding:4px;border-radius:4px;}
+.sev-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
+.sev-High{background:#e67e22;padding:4px;border-radius:4px;}
+.sev-Critical{background:#e74c3c;padding:4px;border-radius:4px;}
+.incident-desc{color:#8B0000;font-weight:bold;}
 </style>
 </head>
 
 <body>
-
-<header> Dispatch Command Center OESF</header>
+<div class="header">
+<h1>Emergency Operations Dashboard</h1>
+<button onclick="toggleTheme()">🌗 Theme</button>
+</div>
 
 <div class="container">
-
 <div class="sidebar">
+<button onclick="show('responder')">Responder Info</button>
 <button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('createIncident')">Create Incident</button>
-<button onclick="show('onDutyRoster')">OnDuty Roster</button>
-<button onclick="show('statistics')">Statistics</button>
-<button onclick="signOut()">Sign Out</button>
+<button onclick="show('incidents')">Active Incidents</button>
+<button onclick="show('completed')">Completed Incidents</button>
+<button onclick="show('roster')">OnDuty Roster</button>
 </div>
 
 <div class="main">
-
-<section id="signIn">
-<h2>Sign In / Sign Up</h2>
-<input id="email" type="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-<input id="responderName" placeholder="Name">
-<input id="vehicle" placeholder="Vehicle (Color / Reg)">
-<button onclick="signUp()">Sign Up</button>
-<button onclick="signInUser()">Sign In</button>
+<!-- Responder Info -->
+<section id="responder">
+<h2>Responder Info</h2>
+<input id="resName" placeholder="Name">
+<input id="resVehicle" placeholder="Vehicle (Make/Model/Color/Reg)">
+<button class="action" onclick="addResponder()">Enter</button>
 </section>
 
+<!-- Dashboard -->
 <section id="dashboard">
-<h2 class="sectionTitle">Active Incidents</h2>
-<div id="activeIncidents"></div>
-
-<h2 class="sectionTitle">Completed Incidents</h2>
-<div id="completedIncidents"></div>
+<h2>Dashboard</h2>
+<h3>Active Incidents</h3>
+<div id="dashboardIncidents"></div>
+<h3>On Duty Responders</h3>
+<div id="dashboardRoster"></div>
 </section>
 
-<section id="createIncident">
-<h2>Create Incident</h2>
-<input id="address" placeholder="Address">
-<input id="description" placeholder="Description">
-<input id="contact" placeholder="Contact On Scene">
-<select id="priority">
-<option>Low</option>
-<option>Medium</option>
-<option>High</option>
-<option>Critical</option>
+<!-- Active Incidents -->
+<section id="incidents">
+<h2>Active Incidents</h2>
+<input id="incAddress" placeholder="Address">
+<input id="incDesc" placeholder="Description">
+<select id="incSeverity">
+<option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
 </select>
-<button onclick="createIncident()">Create Incident</button>
+<input id="incCOS" placeholder="Contact On Scene">
+<button class="action" onclick="addIncident()">Add Incident</button>
+<div id="incidentList"></div>
 </section>
 
-<section id="onDutyRoster">
+<!-- Completed Incidents -->
+<section id="completed">
+<h2>Completed Incidents</h2>
+<div id="completedList"></div>
+</section>
+
+<!-- OnDuty Roster -->
+<section id="roster">
 <h2>OnDuty Roster</h2>
 <div id="rosterList"></div>
 </section>
-
-<section id="statistics">
-<h2>Incident Statistics</h2>
-<div id="statsContent"></div>
-</section>
-
 </div>
 </div>
 
-<!-- AUDIO ALERTS -->
-<audio id="respondingSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
-<audio id="standingOffSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
+<audio id="respondSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+<audio id="standingSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  updateDoc,
-  deleteDoc,
-  doc,
-  query,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as fbSignOut,
-  onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
 
-/* 🔥 FIREBASE CONFIG */
+<script>
+// --- PASTE YOUR FIREBASE CONFIG HERE ---
 const firebaseConfig = {
-  apiKey: "PASTE_HERE",
-  authDomain: "PASTE_HERE",
-  projectId: "PASTE_HERE",
-  storageBucket: "PASTE_HERE",
-  messagingSenderId: "PASTE_HERE",
-  appId: "PASTE_HERE"
+  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+    authDomain: "oesf-e7a8e.firebaseapp.com",
+    projectId: "oesf-e7a8e",
+    storageBucket: "oesf-e7a8e.firebasestorage.app",
+    messagingSenderId: "844363489759",
+    appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
+
 };
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-let incidents = [];
-let responders = [];
-let currentUser = null;
+// Theme
+function toggleTheme(){
+document.body.classList.toggle("light");
+localStorage.setItem("theme", document.body.classList.contains("light") ? "light" : "dark");
+}
+if(localStorage.getItem("theme")==="light") document.body.classList.add("light");
 
-/* AUTH */
-window.signUp = async () => {
-    if(!email.value || !password.value || !responderName.value || !vehicle.value){
-        alert("All fields required");
-        return;
-    }
-    const cred = await createUserWithEmailAndPassword(auth, email.value, password.value);
-    await addDoc(collection(db,"responders"),{
-        uid:cred.user.uid,
-        name:responderName.value,
-        vehicle:vehicle.value,
-        status:"Available"
-    });
-    email.value=""; password.value=""; responderName.value=""; vehicle.value="";
-};
-
-window.signInUser = async () => {
-    const cred = await signInWithEmailAndPassword(auth,email.value,password.value);
-    currentUser = cred.user;
-    show('dashboard');
-    email.value=""; password.value="";
-};
-
-window.signOut = async () => {
-    await fbSignOut(auth);
-    currentUser=null;
-    show('signIn');
-};
-
-/* LISTEN AUTH STATE */
-onAuthStateChanged(auth,(user)=>{
-    currentUser=user;
-    if(user) show('dashboard');
-    else show('signIn');
-});
-
-/* INCIDENTS */
-onSnapshot(collection(db, "incidents"), (snapshot) => {
-    incidents = [];
-    snapshot.forEach(docSnap=>incidents.push({id:docSnap.id,...docSnap.data()}));
-    render();
-});
-
-/* RESPONDERS */
-onSnapshot(collection(db,"responders"),snapshot=>{
-    responders = [];
-    snapshot.forEach(docSnap=>responders.push({id:docSnap.id,...docSnap.data()}));
-    renderRoster();
-});
-
-/* CREATE INCIDENT */
-window.createIncident = async () => {
-    if(!address.value || !description.value) return alert("Address and description required");
-    await addDoc(collection(db,"incidents"),{
-        address:address.value,
-        description:description.value,
-        contact:contact.value,
-        priority:priority.value,
-        responders:[],
-        status:"Active",
-        created:Date.now()
-    });
-    address.value=""; description.value=""; contact.value="";
-};
-
-/* UPDATE STATUS FOR A RESPONDER */
-window.updateStatus = async (incidentId,status) => {
-    if(!currentUser) return alert("Not signed in");
-    const inc = incidents.find(i=>i.id===incidentId);
-    if(!inc) return;
-    let resp = inc.responders.find(r=>r.uid===currentUser.uid);
-    if(!resp){
-        resp = {uid:currentUser.uid,name:responders.find(r=>r.uid===currentUser.uid)?.name||"Responder",status:"Responding",start:Date.now(),elapsed:0};
-        inc.responders.push(resp);
-    }
-
-    if(status==="Standing Off" || status==="Completed"){
-        if(resp.start) resp.elapsed += Date.now() - resp.start;
-        resp.start=null;
-    } else {
-        if(!resp.start) resp.start=Date.now();
-    }
-    resp.status=status;
-
-    await updateDoc(doc(db,"incidents",incidentId),{responders:inc.responders,status:status==="Completed"?"Completed":"Active"});
-    if(status==="Responding") document.getElementById("respondingSound").play();
-    if(status==="Standing Off") document.getElementById("standingOffSound").play();
-};
-
-/* REMOVE INCIDENT */
-window.removeIncident = async (id) => {
-    await deleteDoc(doc(db,"incidents",id));
-};
-
-/* TIMER */
-function formatTime(ms){
-    const total=Math.floor(ms/1000);
-    const m=Math.floor(total/60);
-    const s=total%60;
-    return `${m}m ${s}s`;
+// Page navigation
+function show(id){
+document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
-/* RENDER */
-function render(){
-    const activeDiv=document.getElementById("activeIncidents");
-    const completedDiv=document.getElementById("completedIncidents");
-    activeDiv.innerHTML="";
-    completedDiv.innerHTML="";
-
-    incidents.sort((a,b)=>b.created-a.created);
-
-    incidents.forEach(i=>{
-        let timerDisplay="",statusText="No Responder";
-        let respEls="";
-        i.responders.forEach(r=>{
-            let total=r.elapsed||0;
-            if(r.start) total += Date.now()-r.start;
-            timerDisplay=`<div class="timer">Time: ${formatTime(total)}</div>`;
-            statusText = r.status;
-            respEls += `<div>${r.name} (${r.status})</div>`;
-        });
-
-        const mapUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(i.address);
-
-        const card=`
-        <div class="card">
-            <b>${i.priority}</b> - <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
-            <span class="incDesc">${i.description}</span><br>
-            Contact: ${i.contact||"N/A"}<br>
-            ${respEls}
-            ${timerDisplay}
-            ${i.status!=="Completed"?`
-            <div>
-                <button class="action orange" onclick="updateStatus('${i.id}','Responding')">Responding</button>
-                <button class="action blue" onclick="updateStatus('${i.id}','Busy')">Busy</button>
-                <button class="action red" onclick="updateStatus('${i.id}','Standing Off')">Standing Off</button>
-                <button class="action green" onclick="updateStatus('${i.id}','Completed')">Completed</button>
-            </div>`:""}
-            <button class="action closeBtn" onclick="removeIncident('${i.id}')">Remove</button>
-        </div>
-        `;
-
-        if(i.status==="Completed") completedDiv.innerHTML+=card;
-        else activeDiv.innerHTML+=card;
-    });
-
-    renderStats();
+// ---------- Responder ----------
+function addResponder(){
+const name = document.getElementById("resName").value.trim();
+const vehicle = document.getElementById("resVehicle").value.trim();
+if(!name || !vehicle){ alert("Enter both name and vehicle"); return; }
+db.ref("responders/"+name).set({name, vehicle, status:"Available"});
+document.getElementById("resName").value="";
+document.getElementById("resVehicle").value="";
+alert(`${name} entered as responder!`);
 }
 
+// ---------- Incidents ----------
+function addIncident(){
+const addr = document.getElementById("incAddress").value.trim();
+const desc = document.getElementById("incDesc").value.trim();
+const sev = document.getElementById("incSeverity").value;
+const cos = document.getElementById("incCOS").value.trim();
+if(!addr || !desc || !sev){ alert("Fill in all fields"); return; }
+
+const incId = Date.now();
+db.ref("incidents/"+incId).set({
+id: incId,
+address: addr,
+description: desc,
+severity: sev,
+cos: cos,
+status: "Responding",
+assigned: [],
+start: Date.now(),
+elapsed:0
+});
+document.getElementById("incAddress").value="";
+document.getElementById("incDesc").value="";
+document.getElementById("incCOS").value="";
+}
+
+// ---------- Status update ----------
+function updateIncidentStatus(incId, resName, newStatus){
+const incRef = db.ref("incidents/"+incId);
+incRef.once("value").then(snap=>{
+const inc = snap.val();
+if(!inc.assigned.includes(resName)) inc.assigned.push(resName);
+if(newStatus==="StandingOff" || newStatus==="Completed") inc.elapsed += Date.now() - inc.start;
+if(newStatus!=="Completed") inc.start = Date.now();
+inc.status = newStatus;
+incRef.set(inc);
+
+if(newStatus==="Responding") document.getElementById("respondSound").play();
+if(newStatus==="StandingOff") document.getElementById("standingSound").play();
+});
+}
+
+// ---------- Rendering ----------
+function renderAll(){
+renderIncidents();
+renderCompleted();
+renderRoster();
+renderDashboard();
+}
+
+// Active Incidents
+function renderIncidents(){
+const list = document.getElementById("incidentList");
+list.innerHTML="";
+db.ref("incidents").orderByChild("start").on("value", snap=>{
+const data = snap.val();
+if(!data) return;
+list.innerHTML="";
+Object.values(data).filter(i=>i.status!=="Completed").sort((a,b)=>b.start - a.start).forEach(i=>{
+const t = i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
+const c = document.createElement("div");
+c.className="card";
+c.innerHTML=`
+<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
+<span class="incident-desc">${i.description}</span><br>
+COS: ${i.cos}<br>
+Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
+${Object.keys(i.assigned).map(r=>{
+return `<button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'${r}','Responding')">Responding</button>
+<button class="status-btn Busy" onclick="updateIncidentStatus(${i.id},'${r}','Busy')">Busy</button>
+<button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'${r}','StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'${r}','Completed')">Completed</button>`;
+}).join('')}
+<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}" target="_blank">Open Map</a>
+`;
+list.appendChild(c);
+});
+});
+
+// Completed Incidents
+function renderCompleted(){
+const list = document.getElementById("completedList");
+list.innerHTML="";
+db.ref("incidents").orderByChild("start").on("value", snap=>{
+const data = snap.val();
+if(!data) return;
+list.innerHTML="";
+Object.values(data).filter(i=>i.status==="Completed").sort((a,b)=>b.start - a.start).forEach(i=>{
+const t = i.elapsed;
+const c = document.createElement("div");
+c.className="card completed";
+c.innerHTML=`
+<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
+<span class="incident-desc">${i.description}</span><br>
+Time on scene: ${new Date(t).toISOString().substr(11,8)}
+`;
+list.appendChild(c);
+});
+});
+}
+
+// OnDuty Roster
 function renderRoster(){
-    const div=document.getElementById("rosterList");
-    div.innerHTML="";
-    responders.forEach(r=>{
-        div.innerHTML+=`<div class="card">${r.name} | ${r.vehicle} | ${r.status}</div>`;
-    });
+const list = document.getElementById("rosterList");
+list.innerHTML="";
+db.ref("responders").on("value", snap=>{
+const data = snap.val();
+if(!data) return;
+list.innerHTML="";
+Object.values(data).forEach(r=>{
+const c = document.createElement("div");
+c.className="card";
+c.innerHTML=`${r.name} | ${r.vehicle} | ${r.status}`;
+list.appendChild(c);
+});
+});
 }
 
-function renderStats(){
-    const total=incidents.length;
-    const active=incidents.filter(i=>i.status==="Active").length;
-    const completed=incidents.filter(i=>i.status==="Completed").length;
-    document.getElementById("statsContent").innerHTML=`
-        <div class="statBox">Total Incidents: ${total}</div>
-        <div class="statBox">Active Incidents: ${active}</div>
-        <div class="statBox">Completed Incidents: ${completed}</div>
-    `;
-}
+// Dashboard
+function renderDashboard(){
+const dashInc = document.getElementById("dashboardIncidents");
+const dashRoster = document.getElementById("dashboardRoster");
+dashInc.innerHTML="";
+dashRoster.innerHTML="";
 
-/* NAVIGATION */
-window.show=function(id){
-    document.querySelectorAll("section").forEach(s=>s.style.display="none");
-    document.getElementById(id).style.display="block";
-};
+db.ref("incidents").orderByChild("start").on("value", snap=>{
+const data = snap.val();
+if(!data) return;
+dashInc.innerHTML="";
+Object.values(data).filter(i=>i.status!=="Completed").sort((a,b)=>b.start - a.start).forEach(i=>{
+const t = i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
+const c = document.createElement("div");
+c.className="card";
+c.innerHTML=`
+<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
+<span class="incident-desc">${i.description}</span><br>
+Assigned: ${i.assigned.join(", ") || "None"}<br>
+Status: ${i.status}<br>
+Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span>
+`;
+dashInc.appendChild(c);
+});
+});
 
-show("signIn");
+db.ref("responders").on("value", snap=>{
+const data = snap.val();
+if(!data) return;
+dashRoster.innerHTML="";
+Object.values(data).forEach(r=>{
+const c = document.createElement("div");
+c.className="card";
+c.innerHTML=`${r.name} | ${r.vehicle} | ${r.status}`;
+dashRoster.appendChild(c);
+});
+});
 
+// Auto refresh timers
+setInterval(renderAll, 1000);
+show("responder");
 </script>
-
 </body>
 </html>
