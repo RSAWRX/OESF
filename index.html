@@ -8,7 +8,7 @@
 body{margin:0;font-family:Segoe UI,Arial;background:#001f3f;color:white;}
 .header{position:sticky;top:0;background:#00264d;padding:10px 20px;display:flex;align-items:center;border-bottom:2px solid #004080;}
 .header h1{margin:0;font-size:22px;}
-.header button{margin-left:auto;}
+.header button{margin-left:10px;}
 .container{display:flex;height:calc(100vh - 60px);}
 .sidebar{width:240px;background:#00264d;display:flex;flex-direction:column;}
 .sidebar button{padding:16px;border:none;background:none;color:white;text-align:left;cursor:pointer;border-bottom:1px solid #004080;}
@@ -23,12 +23,14 @@ section.active{display:block;}
 .incident-desc{color:#8B0000;font-weight:bold;}
 .map-link{display:inline-block;background:#0074D9;color:white;padding:4px 8px;border-radius:4px;text-decoration:none;margin-top:4px;}
 .map-link:hover{background:#005fa3;}
+#clock{margin-left:auto;font-weight:bold;}
 </style>
 </head>
 <body>
 
 <div class="header">
 <h1>Emergency Dashboard</h1>
+<div id="clock"></div>
 <button onclick="toggleTheme()">🌗 Theme</button>
 </div>
 
@@ -89,27 +91,36 @@ section.active{display:block;}
 <script>
 // --- PASTE YOUR FIREBASE CONFIG HERE ---
 const firebaseConfig = {
-  // apiKey: "...",
-  // authDomain: "...",
-  // databaseURL: "...",
-  // projectId: "...",
-  // storageBucket: "...",
-  // messagingSenderId: "...",
-  // appId: "..."
+  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+    authDomain: "oesf-e7a8e.firebaseapp.com",
+    projectId: "oesf-e7a8e",
+    storageBucket: "oesf-e7a8e.firebasestorage.app",
+    messagingSenderId: "844363489759",
+    appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Theme
-function toggleTheme(){
-document.body.classList.toggle("light");
-}
+// ---------- Theme ----------
+function toggleTheme(){ document.body.classList.toggle("light"); }
 
-// Page navigation
+// ---------- Page Navigation ----------
 function show(id){
 document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
 document.getElementById(id).classList.add("active");
 }
+
+// ---------- Clock ----------
+function updateClock() {
+  const now = new Date();
+  const options = { 
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  };
+  document.getElementById('clock').innerText = now.toLocaleString('en-US', options);
+}
+setInterval(updateClock, 1000);
+updateClock();
 
 // ---------- Responder ----------
 function addResponder(){
@@ -117,7 +128,8 @@ const name=document.getElementById("resName").value.trim();
 const vehicle=document.getElementById("resVehicle").value.trim();
 if(!name||!vehicle){ alert("Enter both name and vehicle"); return; }
 db.ref("responders/"+name).set({name,vehicle,status:"Available"});
-document.getElementById("resName").value="";document.getElementById("resVehicle").value="";
+document.getElementById("resName").value="";
+document.getElementById("resVehicle").value="";
 document.getElementById("resMessage").innerText=`${name} entered as responder!`;
 }
 
@@ -133,11 +145,13 @@ const incId=Date.now();
 db.ref("incidents/"+incId).set({
 id:incId,address:addr,description:desc,severity:sev,cos:cos,status:"Responding",assigned:[],start:Date.now(),elapsed:0
 });
-document.getElementById("incAddress").value="";document.getElementById("incDesc").value="";document.getElementById("incCOS").value="";
+document.getElementById("incAddress").value="";
+document.getElementById("incDesc").value="";
+document.getElementById("incCOS").value="";
 document.getElementById("newIncidentSound").play();
 }
 
-// Status update
+// ---------- Status update ----------
 function updateIncidentStatus(incId,resName,newStatus){
 const incRef=db.ref("incidents/"+incId);
 incRef.once("value").then(snap=>{
@@ -152,35 +166,29 @@ if(newStatus==="StandingOff") document.getElementById("standingSound").play();
 });
 }
 
-// Render all sections
-function renderAll(){
-renderRoster();
-renderActiveIncidents();
-renderCompleted();
-renderDashboard();
-}
-
-function renderRoster(){
-db.ref("responders").on("value",snap=>{
-const data=snap.val()||{};
-const list=document.getElementById("rosterList");
-list.innerHTML="";
-Object.values(data).forEach(r=>{list.innerHTML+=`<div class="card">${r.name} | ${r.vehicle} | ${r.status}</div>`;});
+// ---------- Realtime Render ----------
+db.ref("responders").on("value", snap=>{
+const data = snap.val()||{};
+const list = document.getElementById("rosterList");
+const dashRoster = document.getElementById("dashboardRoster");
+list.innerHTML=""; dashRoster.innerHTML="";
+Object.values(data).forEach(r=>{
+list.innerHTML+=`<div class="card">${r.name} | ${r.vehicle} | ${r.status}</div>`;
+dashRoster.innerHTML+=`<div class="card">${r.name} | ${r.vehicle} | ${r.status}</div>`;
 });
-}
+});
 
-function renderActiveIncidents(){
-db.ref("incidents").on("value",snap=>{
-const data=snap.val()||{};
-const list=document.getElementById("incidentList");
-list.innerHTML="";
-Object.values(data).filter(i=>i.status!=="Completed").sort((a,b)=>b.start-a.start).forEach(i=>{
+db.ref("incidents").on("value", snap=>{
+const data = snap.val()||{};
+const dashInc = document.getElementById("dashboardIncidents");
+const completedList = document.getElementById("completedList");
+dashInc.innerHTML=""; completedList.innerHTML="";
+Object.values(data).sort((a,b)=>b.start-a.start).forEach(i=>{
 const t=i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
-const c=document.createElement("div");
-c.className="card";
-c.innerHTML=`<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
+const html=`<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
 <span class="incident-desc">${i.description}</span><br>
-COS: ${i.cos}<br>
+Assigned: ${i.assigned.join(", ") || "None"}<br>
+Status: ${i.status}<br>
 Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
 <a target="_blank" class="map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a><br>
 <button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'Responder','Responding')">Responding</button>
@@ -188,51 +196,13 @@ Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</spa
 <button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'Responder','StandingOff')">Standing Off</button>
 <button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'Responder','Completed')">Completed</button>
 `;
-list.appendChild(c);
-});
-}
 
-function renderCompleted(){
-db.ref("incidents").on("value",snap=>{
-const data=snap.val()||{};
-const list=document.getElementById("completedList");
-list.innerHTML="";
-Object.values(data).filter(i=>i.status==="Completed").sort((a,b)=>b.start-a.start).forEach(i=>{
-const t=i.elapsed;
-const c=document.createElement("div");
-c.className="card completed";
-c.innerHTML=`<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
-<span class="incident-desc">${i.description}</span><br>Time on scene: ${new Date(t).toISOString().substr(11,8)}<br>
-<a target="_blank" class="map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a>`;
-list.appendChild(c);
+if(i.status==="Completed"){ completedList.innerHTML+=`<div class="card completed">${html}</div>`; }
+else{ dashInc.innerHTML+=`<div class="card">${html}</div>`; }
 });
-}
+});
 
-function renderDashboard(){
-const dashInc=document.getElementById("dashboardIncidents");
-const dashRoster=document.getElementById("dashboardRoster");
-dashInc.innerHTML=""; dashRoster.innerHTML="";
-db.ref("incidents").on("value",snap=>{
-const data=snap.val()||{};
-Object.values(data).filter(i=>i.status!=="Completed").sort((a,b)=>b.start-a.start).forEach(i=>{
-const t=i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
-const c=document.createElement("div");
-c.className="card";
-c.innerHTML=`<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br><span class="incident-desc">${i.description}</span><br>
-Assigned: ${i.assigned.join(", ") || "None"}<br>Status: ${i.status}<br>
-Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span>
-<a target="_blank" class="map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a>
-`;
-dashInc.appendChild(c);
-});
-db.ref("responders").on("value",snap=>{
-const data=snap.val()||{};
-dashRoster.innerHTML="";
-Object.values(data).forEach(r=>{dashRoster.innerHTML+=`<div class="card">${r.name} | ${r.vehicle} | ${r.status}</div>`;});
-});
-}
-
-setInterval(renderAll,1000);
+// Initial page
 show("addIncident");
 </script>
 </body>
