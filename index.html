@@ -6,271 +6,288 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{margin:0;font-family:Segoe UI;background:#0b1e35;color:white}
-header{background:#132c4d;padding:15px;font-size:20px}
-.container{display:flex;height:100vh}
-.sidebar{width:250px;background:#132c4d;padding:10px}
-.sidebar button{width:100%;margin:6px 0;padding:10px;background:#1f3f66;border:none;color:white;cursor:pointer}
-.sidebar button:hover{background:#29598f}
-.main{flex:1;padding:20px;overflow:auto}
-.card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px}
-input,select,textarea{width:100%;padding:8px;margin:6px 0}
-button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
-.orange{background:orange;color:white}
-.blue{background:#0099ff;color:white}
-.red{background:red;color:white}
-.green{background:green;color:white}
-.closeBtn{background:#444;color:white}
-.timer{color:#00e5ff;font-weight:bold}
-a.mapLink{color:#00e5ff;text-decoration:none;font-weight:bold}
-a.mapLink:hover{text-decoration:underline}
-.sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
-.responder{margin-left:10px;}
-.responder b{color:#00e5ff;}
-.incDesc{color:#ff5555;font-weight:bold;}
+body{
+    margin:0;
+    font-family:Segoe UI;
+    background:#0b1e35;
+    color:white;
+}
+header{
+    background:#132c4d;
+    padding:15px;
+    font-size:20px;
+}
+.container{
+    display:flex;
+    height:100vh;
+}
+.sidebar{
+    width:220px;
+    background:#132c4d;
+    padding:10px;
+}
+.sidebar button{
+    width:100%;
+    margin:6px 0;
+    padding:10px;
+    background:#1f3f66;
+    border:none;
+    color:white;
+    cursor:pointer;
+}
+.sidebar button:hover{
+    background:#29598f;
+}
+.main{
+    flex:1;
+    padding:20px;
+    overflow:auto;
+}
+.card{
+    background:#1f3f66;
+    padding:12px;
+    margin:10px 0;
+    border-radius:6px;
+}
+input,select{
+    width:100%;
+    padding:8px;
+    margin:6px 0;
+}
+button.action{
+    padding:6px 10px;
+    margin:3px 3px 3px 0;
+    border:none;
+    cursor:pointer;
+}
+.orange{background:orange;color:white;}
+.blue{background:#0099ff;color:white;}
+.red{background:red;color:white;}
+.green{background:green;color:white;}
+.closeBtn{background:#444;color:white;}
+.incDesc{
+    color:#ff4444;
+    font-weight:bold;
+}
+.sectionTitle{
+    margin-top:25px;
+    border-bottom:1px solid #29598f;
+    padding-bottom:5px;
+}
+a.mapLink{
+    color:#00e5ff;
+    font-weight:bold;
+    text-decoration:none;
+}
+a.mapLink:hover{
+    text-decoration:underline;
+}
 section{display:none;}
+.timer{
+    color:#00e5ff;
+    font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
-<header>Dispatch Command Center OESF</header>
+<header>🚨 Incident Command Center</header>
 
 <div class="container">
 
 <div class="sidebar">
-<button onclick="show('signup')">Sign Up</button>
-<button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('createIncident')">Create Incident</button>
-<button onclick="show('onDuty')">OnDuty Roster</button>
+    <button onclick="show('dashboard')">Dashboard</button>
+    <button onclick="show('createIncident')">Create Incident</button>
 </div>
 
 <div class="main">
 
-<!-- Sign Up Section -->
-<section id="signup">
-<h2>Responder Sign Up</h2>
-<input id="name" placeholder="Name">
-<input id="vehicleMake" placeholder="Vehicle Make & Model">
-<input id="vehicleColor" placeholder="Vehicle Color">
-<input id="vehicleReg" placeholder="Vehicle Registration">
-<button onclick="signUp()">Sign Up</button>
-</section>
-
-<!-- Dashboard Section -->
+<!-- DASHBOARD -->
 <section id="dashboard">
+
 <h2 class="sectionTitle">Active Incidents</h2>
-<div id="incidentBoard"></div>
+<div id="activeIncidents"></div>
 
 <h2 class="sectionTitle">Completed Incidents</h2>
-<div id="completedBoard"></div>
+<div id="completedIncidents"></div>
+
 </section>
 
-<!-- Create Incident Section -->
+<!-- CREATE INCIDENT -->
 <section id="createIncident">
 <h2>Create Incident</h2>
+
 <input id="address" placeholder="Address">
 <input id="description" placeholder="Description">
 <input id="contact" placeholder="Contact On Scene">
+
 <select id="priority">
 <option>Low</option>
 <option>Medium</option>
 <option>High</option>
 <option>Critical</option>
 </select>
-<button onclick="createIncident()">Create Incident</button>
-</section>
 
-<!-- OnDuty Roster Section -->
-<section id="onDuty">
-<h2 class="sectionTitle">OnDuty Roster</h2>
-<div id="rosterBoard"></div>
+<button onclick="createIncident()">Create Incident</button>
+
 </section>
 
 </div>
 </div>
 
 <script>
-// --- Core data ---
+
 let incidents = [];
-let responders = [];
 
-// --- Current logged in responder ---
-let currentResponder = null;
-
-// --- Show section ---
+// NAVIGATION
 function show(id){
-document.querySelectorAll("section").forEach(s=>s.style.display="none");
-document.getElementById(id).style.display="block";
+    document.querySelectorAll("section").forEach(sec=>sec.style.display="none");
+    document.getElementById(id).style.display="block";
 }
 
-// --- Sign Up ---
-function signUp(){
-const nameV = document.getElementById("name").value.trim();
-const makeV = document.getElementById("vehicleMake").value.trim();
-const colorV = document.getElementById("vehicleColor").value.trim();
-const regV = document.getElementById("vehicleReg").value.trim();
-
-if(!nameV || !makeV || !colorV || !regV){ alert("Fill all fields"); return; }
-
-// prevent duplicate names
-if(responders.some(r=>r.name===nameV)){
-alert("This responder already exists");
-return;
-}
-
-currentResponder = {name:nameV,vehicle:`${makeV} ${colorV} (${regV})`,status:"Available"};
-responders.push(currentResponder);
-
-renderRoster();
-alert(`Signed up as ${nameV}`);
-show("dashboard");
-}
-
-// --- Render OnDuty Roster ---
-function renderRoster(){
-const rosterDiv = document.getElementById("rosterBoard");
-rosterDiv.innerHTML="";
-responders.forEach(u=>{
-rosterDiv.innerHTML+=`<div class="card"><b>${u.name}</b> | ${u.vehicle} | Status: ${u.status}</div>`;
-});
-}
-
-// --- Create Incident ---
+// CREATE INCIDENT
 function createIncident(){
-if(!address.value || !description.value){ alert("Enter address & description"); return; }
-const incident = {
-id:Date.now(),
-address:address.value,
-description:description.value,
-contact:contact.value,
-priority:priority.value,
-created:Date.now(),
-status:"Active",
-responders:[],
-completed:false
-};
-incidents.unshift(incident); // newest first
-address.value=""; description.value=""; contact.value="";
-renderIncidents();
+    if(!address.value || !description.value){
+        alert("Address and Description required");
+        return;
+    }
+
+    const incident = {
+        id: Date.now(),
+        address: address.value,
+        description: description.value,
+        contact: contact.value,
+        priority: priority.value,
+        status: "Active",
+        responders: [],
+        created: Date.now()
+    };
+
+    incidents.unshift(incident);
+
+    address.value="";
+    description.value="";
+    contact.value="";
+
+    render();
+    show("dashboard");
+}
+
+// RESPONDER STATUS
+function updateStatus(incidentId, status){
+    const inc = incidents.find(i=>i.id===incidentId);
+    if(!inc) return;
+
+    let responder = inc.responders[0];
+
+    if(!responder){
+        responder = {
+            status: status,
+            start: Date.now(),
+            elapsed: 0
+        };
+        inc.responders.push(responder);
+    }
+
+    if(status === "Standing Off" || status === "Completed"){
+        if(responder.start){
+            responder.elapsed += Date.now() - responder.start;
+            responder.start = null;
+        }
+    } else {
+        if(!responder.start){
+            responder.start = Date.now();
+        }
+    }
+
+    responder.status = status;
+
+    if(status === "Completed"){
+        inc.status = "Completed";
+    }
+
+    render();
+}
+
+// TIMER FORMAT
+function formatTime(ms){
+    const totalSec = Math.floor(ms/1000);
+    const min = Math.floor(totalSec/60);
+    const sec = totalSec % 60;
+    return `${min}m ${sec}s`;
+}
+
+// REMOVE INCIDENT
+function removeIncident(id){
+    incidents = incidents.filter(i=>i.id!==id);
+    render();
+}
+
+// RENDER
+function render(){
+    const activeDiv = document.getElementById("activeIncidents");
+    const completedDiv = document.getElementById("completedIncidents");
+
+    activeDiv.innerHTML="";
+    completedDiv.innerHTML="";
+
+    incidents.forEach(i=>{
+
+        const mapUrl = "https://www.google.com/maps/search/?api=1&query=" 
+        + encodeURIComponent(i.address);
+
+        const responder = i.responders[0];
+
+        let timerDisplay = "";
+        if(responder){
+            let total = responder.elapsed;
+            if(responder.start){
+                total += Date.now() - responder.start;
+            }
+            timerDisplay = `<div class="timer">Time: ${formatTime(total)}</div>`;
+        }
+
+        const card = `
+        <div class="card">
+            <b>${i.priority}</b> -
+            <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a>
+            <br>
+            <span class="incDesc">${i.description}</span><br>
+            Contact: ${i.contact || "N/A"}<br>
+            Status: ${responder ? responder.status : "Not Assigned"}<br>
+            ${timerDisplay}
+
+            <select onchange="updateStatus(${i.id}, this.value)">
+                <option disabled selected>Update Status</option>
+                <option>Responding</option>
+                <option>On Scene</option>
+                <option>Standing Off</option>
+                <option>Completed</option>
+            </select>
+
+            <button class="action closeBtn" onclick="removeIncident(${i.id})">
+                Remove
+            </button>
+        </div>
+        `;
+
+        if(i.status === "Completed"){
+            completedDiv.innerHTML += card;
+        } else {
+            activeDiv.innerHTML += card;
+        }
+
+    });
+}
+
+// TIMER REFRESH
+setInterval(render,1000);
+
+// INIT
 show("dashboard");
-}
+render();
 
-// --- Responder Status ---
-function responderStatus(incidentId,status){
-const inc = incidents.find(i=>i.id===incidentId);
-if(!inc || !currentResponder) return;
-
-// Check if responder already assigned
-let r = inc.responders.find(x=>x.name===currentResponder.name);
-if(!r){
-r={name:currentResponder.name,status:"Responding",start:Date.now(),elapsed:0,commander:false};
-inc.responders.push(r);
-}
-
-// First to go On Scene → Commander
-if(status==="On Scene" && !inc.responders.some(x=>x.commander)){
-r.commander=true;
-}
-
-// Stop timer if Standing Off or Completed
-if((status==="Standing Off" || status==="Completed") && r.status!=="Completed"){
-r.elapsed+=Date.now()-r.start;
-r.start=null;
-}
-
-// Start timer if returning to active
-if(status!=="Standing Off" && status!=="Completed" && r.start===null){
-r.start=Date.now();
-}
-
-r.status=status;
-
-// Update responder status
-let res = responders.find(x=>x.name===currentResponder.name);
-res.status=status;
-
-// Mark incident completed if all responders done
-if(inc.responders.length>0 && inc.responders.every(x=>x.status==="Completed")){
-inc.completed=true;
-inc.status="Completed";
-}
-
-renderRoster();
-renderIncidents();
-}
-
-// --- Remove incident ---
-function cancelIncident(id){
-incidents = incidents.filter(i=>i.id!==id);
-renderIncidents();
-}
-
-// --- Status color helper ---
-function statusColor(r){
-switch(r){
-case "Responding": return "orange";
-case "On Scene": return "blue";
-case "Standing Off": return "red";
-case "Busy": return "red";
-case "Completed": return "green";
-default: return "orange";
-}
-}
-
-// --- Render incidents ---
-function renderIncidents(){
-const activeDiv = document.getElementById("incidentBoard");
-const completedDiv = document.getElementById("completedBoard");
-activeDiv.innerHTML=""; completedDiv.innerHTML="";
-
-incidents.forEach(i=>{
-const mapUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(i.address);
-
-if(i.completed){
-completedDiv.innerHTML+=`
-<div class="card">
-<b>${i.priority}</b> - <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
-<span class="incDesc">${i.description}</span><br>
-Contact: ${i.contact}<br>
-Responders: ${i.responders.map(r=>`${r.name} (<span style="color:${statusColor(r.status)}">${r.status}${r.commander?" Commander":""}</span>)`).join(", ")}<br>
-<button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
-</div>`;
-}else{
-activeDiv.innerHTML+=`
-<div class="card">
-<b>${i.priority}</b> - <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
-<span class="incDesc">${i.description}</span><br>
-Contact: ${i.contact}<br>
-Responder: 
-<select onchange="responderStatus(${i.id},this.value)">
-<option disabled selected>Select Status</option>
-<option>Responding</option>
-<option>On Scene</option>
-<option>Standing Off</option>
-<option>Busy</option>
-<option>Completed</option>
-</select><br>
-${i.responders.map(r=>`${r.name} (<span style="color:${statusColor(r.status)}">${r.status}${r.commander?" Commander":""}</span>)`).join(", ")}<br>
-<button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
-</div>`;
-}
-}
-
-// Update timers every second
-setInterval(()=>{
-incidents.forEach(i=>{
-i.responders.forEach(r=>{
-if(r.start) r.elapsed+=1000;
-});
-});
-renderIncidents();
-},1000);
-
-// --- Init ---
-show("signup");
-renderRoster();
-renderIncidents();
 </script>
 
 </body>
