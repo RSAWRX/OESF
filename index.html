@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Responder Dashboard</title>
+<title>Dispatch Command Control</title>
 
 <style>
 body{
@@ -88,9 +88,17 @@ button{width:100%;}
 
 <div class="container">
 
+<!-- Navigation -->
+<button class="nav-btn" onclick="showDashboard()">Dashboard</button>
 <button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
 <button class="nav-btn" onclick="showCompletedPage()">Completed Incidents</button>
 <button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
+
+<!-- Dashboard Page (default) -->
+<div id="dashboardPage">
+<h3>Active Incidents</h3>
+<div id="activeList"></div>
+</div>
 
 <!-- Dispatch Page -->
 <div id="dispatchPage" style="display:none;">
@@ -105,12 +113,6 @@ button{width:100%;}
 </select>
 <input id="cos" placeholder="COS Name" style="width:100%;padding:8px;margin-bottom:8px;">
 <button onclick="addIncident()">Create Incident</button>
-</div>
-
-<!-- Active Incidents -->
-<div id="activePage">
-<h3>Active Incidents</h3>
-<div id="activeList"></div>
 </div>
 
 <!-- Completed Incidents Page -->
@@ -148,7 +150,6 @@ const firebaseConfig = {
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a",
     measurementId: "G-CMZHVSVG8Z"
-
 };
 
 const app = initializeApp(firebaseConfig);
@@ -156,15 +157,21 @@ const db = getFirestore(app);
 const incidentsRef = collection(db,"incidents");
 
 // --- Page Navigation ---
+window.showDashboard = function(){
+document.getElementById("dashboardPage").style.display="block";
+document.getElementById("dispatchPage").style.display="none";
+document.getElementById("completedPage").style.display="none";
+}
+
 window.showDispatch = function(){
+document.getElementById("dashboardPage").style.display="none";
 document.getElementById("dispatchPage").style.display="block";
-document.getElementById("activePage").style.display="block";
 document.getElementById("completedPage").style.display="none";
 }
 
 window.showCompletedPage = function(){
+document.getElementById("dashboardPage").style.display="none";
 document.getElementById("dispatchPage").style.display="none";
-document.getElementById("activePage").style.display="none";
 document.getElementById("completedPage").style.display="block";
 }
 
@@ -189,14 +196,14 @@ report:""
 });
 
 // 🔔 Alarm
-const alarm=document.getElementById("alarmSound");
-alarm.volume=1.0;
-alarm.play();
+document.getElementById("alarmSound").volume=1.0;
+document.getElementById("alarmSound").play();
 
 // 📳 Vibrate mobile
 if(navigator.vibrate){navigator.vibrate([300,150,300,150,500]);}
 
 document.getElementById("dispatchPage").style.display="none";
+showDashboard();
 }
 
 // --- Set Status ---
