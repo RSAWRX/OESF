@@ -56,9 +56,10 @@ input,select{
 }
 button.action{
     padding:6px 10px;
-    margin:3px 3px 3px 0;
+    margin:4px 4px 4px 0;
     border:none;
     cursor:pointer;
+    border-radius:4px;
 }
 .orange{background:orange;color:white;}
 .blue{background:#0099ff;color:white;}
@@ -87,6 +88,9 @@ section{display:none;}
     color:#00e5ff;
     font-weight:bold;
 }
+.statusButtons{
+    margin-top:8px;
+}
 </style>
 </head>
 
@@ -103,7 +107,6 @@ section{display:none;}
 
 <div class="main">
 
-<!-- DASHBOARD -->
 <section id="dashboard">
 
 <h2 class="sectionTitle">Active Incidents</h2>
@@ -114,7 +117,6 @@ section{display:none;}
 
 </section>
 
-<!-- CREATE INCIDENT -->
 <section id="createIncident">
 <h2>Create Incident</h2>
 
@@ -160,8 +162,7 @@ function createIncident(){
         contact: contact.value,
         priority: priority.value,
         status: "Active",
-        responders: [],
-        created: Date.now()
+        responder: null
     };
 
     incidents.unshift(incident);
@@ -174,34 +175,34 @@ function createIncident(){
     show("dashboard");
 }
 
-// RESPONDER STATUS
-function updateStatus(incidentId, status){
-    const inc = incidents.find(i=>i.id===incidentId);
+// UPDATE STATUS
+function updateStatus(id, status){
+    const inc = incidents.find(i=>i.id===id);
     if(!inc) return;
 
-    let responder = inc.responders[0];
-
-    if(!responder){
-        responder = {
+    if(!inc.responder){
+        inc.responder = {
             status: status,
             start: Date.now(),
             elapsed: 0
         };
-        inc.responders.push(responder);
     }
 
+    // Stop timer
     if(status === "Standing Off" || status === "Completed"){
-        if(responder.start){
-            responder.elapsed += Date.now() - responder.start;
-            responder.start = null;
+        if(inc.responder.start){
+            inc.responder.elapsed += Date.now() - inc.responder.start;
+            inc.responder.start = null;
         }
-    } else {
-        if(!responder.start){
-            responder.start = Date.now();
+    }
+    // Start timer
+    else{
+        if(!inc.responder.start){
+            inc.responder.start = Date.now();
         }
     }
 
-    responder.status = status;
+    inc.responder.status = status;
 
     if(status === "Completed"){
         inc.status = "Completed";
@@ -210,12 +211,12 @@ function updateStatus(incidentId, status){
     render();
 }
 
-// TIMER FORMAT
+// FORMAT TIMER
 function formatTime(ms){
-    const totalSec = Math.floor(ms/1000);
-    const min = Math.floor(totalSec/60);
-    const sec = totalSec % 60;
-    return `${min}m ${sec}s`;
+    const total = Math.floor(ms/1000);
+    const m = Math.floor(total/60);
+    const s = total % 60;
+    return `${m}m ${s}s`;
 }
 
 // REMOVE INCIDENT
@@ -237,54 +238,54 @@ function render(){
         const mapUrl = "https://www.google.com/maps/search/?api=1&query=" 
         + encodeURIComponent(i.address);
 
-        const responder = i.responders[0];
+        let timerDisplay="";
+        let statusText="Not Assigned";
 
-        let timerDisplay = "";
-        if(responder){
-            let total = responder.elapsed;
-            if(responder.start){
-                total += Date.now() - responder.start;
+        if(i.responder){
+            let total=i.responder.elapsed;
+            if(i.responder.start){
+                total+=Date.now()-i.responder.start;
             }
-            timerDisplay = `<div class="timer">Time: ${formatTime(total)}</div>`;
+            timerDisplay=`<div class="timer">Time: ${formatTime(total)}</div>`;
+            statusText=i.responder.status;
         }
 
-        const card = `
+        const card=`
         <div class="card">
             <b>${i.priority}</b> -
-            <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a>
-            <br>
+            <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
+
             <span class="incDesc">${i.description}</span><br>
             Contact: ${i.contact || "N/A"}<br>
-            Status: ${responder ? responder.status : "Not Assigned"}<br>
+            Status: ${statusText}
             ${timerDisplay}
 
-            <select onchange="updateStatus(${i.id}, this.value)">
-                <option disabled selected>Update Status</option>
-                <option>Responding</option>
-                <option>On Scene</option>
-                <option>Standing Off</option>
-                <option>Completed</option>
-            </select>
+            ${i.status!=="Completed" ? `
+            <div class="statusButtons">
+                <button class="action orange" onclick="updateStatus(${i.id},'Responding')">Responding</button>
+                <button class="action blue" onclick="updateStatus(${i.id},'On Scene')">On Scene</button>
+                <button class="action red" onclick="updateStatus(${i.id},'Standing Off')">Standing Off</button>
+                <button class="action green" onclick="updateStatus(${i.id},'Completed')">Completed</button>
+            </div>
+            ` : ""}
 
-            <button class="action closeBtn" onclick="removeIncident(${i.id})">
-                Remove
-            </button>
+            <br>
+            <button class="action closeBtn" onclick="removeIncident(${i.id})">Remove</button>
         </div>
         `;
 
-        if(i.status === "Completed"){
-            completedDiv.innerHTML += card;
-        } else {
-            activeDiv.innerHTML += card;
+        if(i.status==="Completed"){
+            completedDiv.innerHTML+=card;
+        } else{
+            activeDiv.innerHTML+=card;
         }
 
     });
 }
 
-// TIMER REFRESH
+// AUTO REFRESH TIMER
 setInterval(render,1000);
 
-// INIT
 show("dashboard");
 render();
 
