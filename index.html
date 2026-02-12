@@ -6,133 +6,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-    margin:0;
-    font-family:Segoe UI;
-    background:#0b1e35;
-    color:white;
-}
-header{
-    background:#132c4d;
-    padding:15px;
-    font-size:20px;
-}
-.container{
-    display:flex;
-    height:100vh;
-}
-.sidebar{
-    width:220px;
-    background:#132c4d;
-    padding:10px;
-}
-.sidebar button{
-    width:100%;
-    margin:6px 0;
-    padding:10px;
-    background:#1f3f66;
-    border:none;
-    color:white;
-    cursor:pointer;
-}
-.sidebar button:hover{
-    background:#29598f;
-}
-.main{
-    flex:1;
-    padding:20px;
-    overflow:auto;
-}
-.card{
-    background:#1f3f66;
-    padding:12px;
-    margin:10px 0;
-    border-radius:6px;
-}
-input,select{
-    width:100%;
-    padding:8px;
-    margin:6px 0;
-}
-button.action{
-    padding:6px 10px;
-    margin:4px 4px 4px 0;
-    border:none;
-    cursor:pointer;
-    border-radius:4px;
-}
+body{margin:0;font-family:Segoe UI;background:#0b1e35;color:white;}
+header{background:#132c4d;padding:15px;font-size:20px;}
+.container{display:flex;height:100vh;}
+.sidebar{width:220px;background:#132c4d;padding:10px;}
+.sidebar button{width:100%;margin:6px 0;padding:10px;background:#1f3f66;border:none;color:white;cursor:pointer;}
+.sidebar button:hover{background:#29598f;}
+.main{flex:1;padding:20px;overflow:auto;}
+.card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px;}
+input,select{width:100%;padding:8px;margin:6px 0;}
+button.action{padding:6px 10px;margin:4px 4px 4px 0;border:none;cursor:pointer;border-radius:4px;}
 .orange{background:orange;color:white;}
 .blue{background:#0099ff;color:white;}
 .red{background:red;color:white;}
 .green{background:green;color:white;}
 .closeBtn{background:#444;color:white;}
-.incDesc{
-    color:#ff4444;
-    font-weight:bold;
-}
-.sectionTitle{
-    margin-top:25px;
-    border-bottom:1px solid #29598f;
-    padding-bottom:5px;
-}
-a.mapLink{
-    color:#00e5ff;
-    font-weight:bold;
-    text-decoration:none;
-}
-a.mapLink:hover{
-    text-decoration:underline;
-}
+.incDesc{color:#ff4444;font-weight:bold;}
+.sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px;}
+a.mapLink{color:#00e5ff;font-weight:bold;text-decoration:none;}
+a.mapLink:hover{text-decoration:underline;}
 section{display:none;}
-.timer{
-    color:#00e5ff;
-    font-weight:bold;
-}
-.statusButtons{
-    margin-top:8px;
-}
+.timer{color:#00e5ff;font-weight:bold;}
+.statusButtons{margin-top:8px;}
 </style>
 </head>
 
 <body>
 
-<header>Dispatch Command Center</header>
+<header>🚨 Incident Command Center</header>
 
 <div class="container">
-
 <div class="sidebar">
-    <button onclick="show('dashboard')">Dashboard</button>
-    <button onclick="show('createIncident')">Create Incident</button>
+<button onclick="show('dashboard')">Dashboard</button>
+<button onclick="show('createIncident')">Create Incident</button>
 </div>
 
 <div class="main">
 
 <section id="dashboard">
-
 <h2 class="sectionTitle">Active Incidents</h2>
 <div id="activeIncidents"></div>
 
 <h2 class="sectionTitle">Completed Incidents</h2>
 <div id="completedIncidents"></div>
-
 </section>
 
 <section id="createIncident">
 <h2>Create Incident</h2>
-
 <input id="address" placeholder="Address">
 <input id="description" placeholder="Description">
 <input id="contact" placeholder="Contact On Scene">
-
 <select id="priority">
 <option>Low</option>
 <option>Medium</option>
 <option>High</option>
 <option>Critical</option>
 </select>
-
 <button onclick="createIncident()">Create Incident</button>
-
 </section>
 
 </div>
@@ -142,13 +72,34 @@ section{display:none;}
 
 let incidents = [];
 
-// NAVIGATION
+/* =========================
+   LOCAL STORAGE FUNCTIONS
+========================= */
+
+function saveData(){
+    localStorage.setItem("incidentsData", JSON.stringify(incidents));
+}
+
+function loadData(){
+    const data = localStorage.getItem("incidentsData");
+    if(data){
+        incidents = JSON.parse(data);
+    }
+}
+
+/* =========================
+   NAVIGATION
+========================= */
+
 function show(id){
     document.querySelectorAll("section").forEach(sec=>sec.style.display="none");
     document.getElementById(id).style.display="block";
 }
 
-// CREATE INCIDENT
+/* =========================
+   CREATE INCIDENT
+========================= */
+
 function createIncident(){
     if(!address.value || !description.value){
         alert("Address and Description required");
@@ -171,11 +122,15 @@ function createIncident(){
     description.value="";
     contact.value="";
 
+    saveData();
     render();
     show("dashboard");
 }
 
-// UPDATE STATUS
+/* =========================
+   UPDATE STATUS
+========================= */
+
 function updateStatus(id, status){
     const inc = incidents.find(i=>i.id===id);
     if(!inc) return;
@@ -188,15 +143,12 @@ function updateStatus(id, status){
         };
     }
 
-    // Stop timer
     if(status === "Standing Off" || status === "Completed"){
         if(inc.responder.start){
             inc.responder.elapsed += Date.now() - inc.responder.start;
             inc.responder.start = null;
         }
-    }
-    // Start timer
-    else{
+    } else {
         if(!inc.responder.start){
             inc.responder.start = Date.now();
         }
@@ -208,10 +160,24 @@ function updateStatus(id, status){
         inc.status = "Completed";
     }
 
+    saveData();
     render();
 }
 
-// FORMAT TIMER
+/* =========================
+   REMOVE INCIDENT
+========================= */
+
+function removeIncident(id){
+    incidents = incidents.filter(i=>i.id!==id);
+    saveData();
+    render();
+}
+
+/* =========================
+   TIMER FORMAT
+========================= */
+
 function formatTime(ms){
     const total = Math.floor(ms/1000);
     const m = Math.floor(total/60);
@@ -219,13 +185,10 @@ function formatTime(ms){
     return `${m}m ${s}s`;
 }
 
-// REMOVE INCIDENT
-function removeIncident(id){
-    incidents = incidents.filter(i=>i.id!==id);
-    render();
-}
+/* =========================
+   RENDER
+========================= */
 
-// RENDER
 function render(){
     const activeDiv = document.getElementById("activeIncidents");
     const completedDiv = document.getElementById("completedIncidents");
@@ -243,9 +206,11 @@ function render(){
 
         if(i.responder){
             let total=i.responder.elapsed;
+
             if(i.responder.start){
-                total+=Date.now()-i.responder.start;
+                total += Date.now() - i.responder.start;
             }
+
             timerDisplay=`<div class="timer">Time: ${formatTime(total)}</div>`;
             statusText=i.responder.status;
         }
@@ -283,9 +248,17 @@ function render(){
     });
 }
 
-// AUTO REFRESH TIMER
+/* =========================
+   AUTO TIMER REFRESH
+========================= */
+
 setInterval(render,1000);
 
+/* =========================
+   INIT
+========================= */
+
+loadData();
 show("dashboard");
 render();
 
