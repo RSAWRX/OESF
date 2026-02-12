@@ -297,7 +297,7 @@ card+=`
 <button class="status-btn Busy" onclick="setStatus('${id}','Busy')">Busy</button>
 <button class="status-btn StandingOff" onclick="setStatus('${id}','StandingOff')">Standing Off</button>
 <button class="status-btn Completed" onclick="setStatus('${id}','Completed')">Completed</button>
-<button class="write-report" onclick="document.getElementById('report-'+id).style.display='block'">Write Report</button>
+<button class="write-report" onclick="document.getElementById('report-${id}').style.display='block'">Write Report</button>
 <textarea id="report-${id}" style="width:100%;display:none;margin-top:5px;">${i.report}</textarea>
 <button class="write-report" onclick="saveReport('${id}')">Save Report</button>
 `;
