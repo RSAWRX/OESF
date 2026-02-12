@@ -95,13 +95,12 @@ from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* 🔴 INSERT YOUR FIREBASE CONFIG */
 const firebaseConfig = {
-   apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
-
 };
 
 const app=initializeApp(firebaseConfig);
@@ -112,56 +111,62 @@ let userDocId=null;
 let unitDocId=null;
 let incidentsCache=[];
 
-/* NAVIGATION */
+/* --- PAGE NAVIGATION --- */
 window.show=id=>{
 document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
 }
 
-/* LOGIN */
-window.login=async()=>{
-
-if(!name.value){alert("Enter name");return;}
-
-currentUser={name:name.value,role:role.value};
-
-const userRef=await addDoc(collection(db,"users"),currentUser);
-userDocId=userRef.id;
-
-if(role.value==="responder"){
-
-if(!vehicle.value||!registration.value){alert("Complete fields");return;}
-
-const q=query(collection(db,"units"),where("registration","==",registration.value));
-const snap=await getDocs(q);
-if(!snap.empty){alert("Already signed in");return;}
-
-const unitRef=await addDoc(collection(db,"units"),{
-name:name.value,
-vehicle:vehicle.value,
-registration:registration.value,
-status:"Available"
+/* --- LOAD USER ON PAGE INIT --- */
+window.addEventListener("load", async () => {
+  const savedUser = JSON.parse(localStorage.getItem("currentUser"));
+  if (savedUser) {
+    currentUser = savedUser;
+    show("dashboard");
+    document.getElementById("createBtn").style.display = currentUser.role === "dispatcher" ? "block" : "none";
+  }
 });
-unitDocId=unitRef.id;
-}
 
-if(role.value==="dispatcher"){
-document.getElementById("createBtn").style.display="block";
-}else{
-document.getElementById("createBtn").style.display="none";
-}
+/* --- LOGIN --- */
+window.login = async () => {
+  if (!name.value) { alert("Enter name"); return; }
 
-show("dashboard");
-}
+  currentUser = {
+    name: name.value,
+    role: role.value
+  };
+  
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
 
-/* LOGOUT */
-window.logout=async()=>{
-if(userDocId) await deleteDoc(doc(db,"users",userDocId));
-if(unitDocId) await deleteDoc(doc(db,"units",unitDocId));
-location.reload();
-}
+  if (role.value === "responder") {
+    if (!vehicle.value || !registration.value) { alert("Complete vehicle info"); return; }
 
-/* CREATE INCIDENT */
+    const q = query(collection(db,"units"), where("registration","==", registration.value));
+    const snap = await getDocs(q);
+    if (!snap.empty) { alert("This responder is already signed in"); return; }
+
+    const unitRef = await addDoc(collection(db,"units"),{
+      name: name.value,
+      vehicle: vehicle.value,
+      registration: registration.value,
+      status: "Available"
+    });
+    unitDocId = unitRef.id;
+  }
+
+  document.getElementById("createBtn").style.display = role.value === "dispatcher" ? "block" : "none";
+
+  show("dashboard");
+};
+
+/* --- LOGOUT --- */
+window.logout = async () => {
+  localStorage.removeItem("currentUser");
+  if(unitDocId) await deleteDoc(doc(db,"units",unitDocId));
+  location.reload();
+};
+
+/* --- CREATE INCIDENT --- */
 window.createIncident=async()=>{
 await addDoc(collection(db,"incidents"),{
 address:address.value,
@@ -177,7 +182,7 @@ alert("Incident Created");
 show("dashboard");
 }
 
-/* UPDATE STATUS */
+/* --- UPDATE STATUS --- */
 window.updateStatus=async(incidentId,status)=>{
 
 const ref=doc(db,"incidents",incidentId);
@@ -188,9 +193,7 @@ let responders=data.responders||[];
 let existing=responders.find(r=>r.unitId===unitDocId);
 
 if(status==="Completed"){
-if(!existing){
-alert("You must mark Responding/On Scene first"); return;
-}
+if(!existing){ alert("Must mark Responding/On Scene first"); return; }
 responders=responders.map(r=>r.unitId===unitDocId?{...r,status}:r);
 await updateDoc(doc(db,"units",unitDocId),{status:"Available"});
 }else{
@@ -205,7 +208,7 @@ await updateDoc(doc(db,"units",unitDocId),{status});
 await updateDoc(ref,{responders});
 }
 
-/* WRITE REPORT */
+/* --- WRITE REPORT --- */
 window.writeReport=async(incidentId)=>{
 const r=prompt("Write your incident report:");
 if(r!==null){
@@ -214,7 +217,7 @@ alert("Report saved");
 }
 }
 
-/* CLOSE INCIDENT (Dispatcher Only) */
+/* --- CLOSE INCIDENT (Dispatcher Only) --- */
 window.closeIncident=async(id)=>{
 const ref=doc(db,"incidents",id);
 const snap=await getDoc(ref);
@@ -223,14 +226,14 @@ await addDoc(collection(db,"archivedIncidents"),data);
 await deleteDoc(ref);
 }
 
-/* CANCEL INCIDENT (Dispatcher Only) */
+/* --- CANCEL INCIDENT (Dispatcher Only) --- */
 window.cancelIncident=async(id)=>{
 if(confirm("Cancel this incident?")){
 await deleteDoc(doc(db,"incidents",id));
 }
 }
 
-/* LIVE INCIDENTS */
+/* --- LIVE INCIDENTS --- */
 onSnapshot(collection(db,"incidents"),snap=>{
 incidentsCache=[];
 snap.forEach(d=>incidentsCache.push({id:d.id,...d.data()}));
@@ -281,7 +284,7 @@ ${currentUser?.role==="dispatcher"?`
 </div>`;
 }
 
-/* LIVE ROSTER */
+/* --- LIVE ROSTER --- */
 const rosterDiv=document.getElementById("rosterBoard");
 onSnapshot(collection(db,"units"),snap=>{
 rosterDiv.innerHTML="";
@@ -297,7 +300,7 @@ Status: ${u.status}
 });
 });
 
-/* ARCHIVE */
+/* --- ARCHIVE --- */
 const archiveDiv=document.getElementById("archiveBoard");
 onSnapshot(collection(db,"archivedIncidents"),snap=>{
 archiveDiv.innerHTML="";
@@ -312,7 +315,6 @@ Closed
 });
 });
 
-show("login");
 setInterval(render,1000);
 
 </script>
