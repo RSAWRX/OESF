@@ -19,10 +19,10 @@ button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 .orange{background:orange}
 .blue{background:#0099ff}
 .red{background:#cc0000;color:white}
-.green{background:green;color:white}
+.green{background:green}
+.closeBtn{background:#444;color:white}
 .timer{color:#00e5ff;font-weight:bold}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
-#map{height:250px;background:#081421;margin-top:20px;border-radius:6px;padding:10px}
 </style>
 </head>
 
@@ -36,7 +36,7 @@ button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 <button onclick="show('dashboard')">Dashboard</button>
 <button id="createBtn" onclick="show('createIncident')">Create Incident</button>
 <button onclick="show('roster')">OnDuty Roster</button>
-<button onclick="show('archive')">Incident Archive</button>
+<button onclick="show('archive')">Archive</button>
 <button onclick="logout()">Logout</button>
 </div>
 
@@ -57,7 +57,6 @@ button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 <section id="dashboard" style="display:none">
 <h2>Active Incidents</h2>
 <div id="incidentBoard"></div>
-<div id="map">🗺 GPS Simulation Map Area</div>
 </section>
 
 <section id="createIncident" style="display:none">
@@ -93,23 +92,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, getDocs, query, where, getDoc, deleteDoc }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* INSERT CONFIG */
-const firebaseConfig = {apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+/* 🔴 INSERT YOUR FIREBASE CONFIG */
+const firebaseConfig = {
+   apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
+
 };
 
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 
 let currentUser=null;
+let userDocId=null;
 let unitDocId=null;
 let incidentsCache=[];
 
-/* NAV */
+/* NAVIGATION */
 window.show=id=>{
 document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
@@ -122,6 +124,9 @@ if(!name.value){alert("Enter name");return;}
 
 currentUser={name:name.value,role:role.value};
 
+const userRef=await addDoc(collection(db,"users"),currentUser);
+userDocId=userRef.id;
+
 if(role.value==="responder"){
 
 if(!vehicle.value||!registration.value){alert("Complete fields");return;}
@@ -130,14 +135,13 @@ const q=query(collection(db,"units"),where("registration","==",registration.valu
 const snap=await getDocs(q);
 if(!snap.empty){alert("Already signed in");return;}
 
-const docRef=await addDoc(collection(db,"units"),{
+const unitRef=await addDoc(collection(db,"units"),{
 name:name.value,
 vehicle:vehicle.value,
 registration:registration.value,
-status:"Available",
-gps:{lat:-26.2,lng:28.0}
+status:"Available"
 });
-unitDocId=docRef.id;
+unitDocId=unitRef.id;
 }
 
 if(role.value==="dispatcher"){
@@ -151,9 +155,8 @@ show("dashboard");
 
 /* LOGOUT */
 window.logout=async()=>{
-if(unitDocId){
-await deleteDoc(doc(db,"units",unitDocId));
-}
+if(userDocId) await deleteDoc(doc(db,"users",userDocId));
+if(unitDocId) await deleteDoc(doc(db,"units",unitDocId));
 location.reload();
 }
 
@@ -165,14 +168,15 @@ description:description.value,
 contact:contact.value,
 priority:priority.value,
 created:Date.now(),
-responders:[]
+responders:[],
+status:"Active"
 });
-alert("Created");
+alert("Incident Created");
 show("dashboard");
 }
 
-/* RESPONDER STATUS */
-async function updateStatus(incidentId,status,color){
+/* UPDATE STATUS */
+window.updateStatus=async(incidentId,status)=>{
 
 const ref=doc(db,"incidents",incidentId);
 const snap=await getDoc(ref);
@@ -185,35 +189,25 @@ if(status==="Completed"){
 responders=responders.filter(r=>r.unitId!==unitDocId);
 await updateDoc(doc(db,"units",unitDocId),{status:"Available"});
 }else{
-
 if(!existing){
-responders.push({unitId:unitDocId,name:currentUser.name,status,color,report:""});
+responders.push({unitId:unitDocId,name:currentUser.name,status});
 }else{
-responders=responders.map(r=>r.unitId===unitDocId?{...r,status,color}:r);
+responders=responders.map(r=>r.unitId===unitDocId?{...r,status}:r);
+}
+await updateDoc(doc(db,"units",unitDocId),{status});
 }
 
-await updateDoc(doc(db,"units",unitDocId),{status:status});
+await updateDoc(ref,{responders});
 }
 
-if(responders.length===0){
+/* CLOSE INCIDENT (Dispatcher Only) */
+window.closeIncident=async(id)=>{
+const ref=doc(db,"incidents",id);
+const snap=await getDoc(ref);
+const data=snap.data();
+
 await addDoc(collection(db,"archivedIncidents"),data);
 await deleteDoc(ref);
-return;
-}
-
-await updateDoc(ref,{responders});
-}
-
-/* WRITE REPORT */
-window.saveReport=async(incidentId,text)=>{
-const ref=doc(db,"incidents",incidentId);
-const snap=await getDoc(ref);
-let data=snap.data();
-let responders=data.responders.map(r=>{
-if(r.unitId===unitDocId){r.report=text;}
-return r;
-});
-await updateDoc(ref,{responders});
 }
 
 /* LIVE INCIDENTS */
@@ -247,11 +241,13 @@ Contact: ${i.contact}<br>
 Time: <span class="timer">${m}:${s}</span><br>
 ${respondersHTML}
 ${currentUser?.role==="responder"?`
-<button class="orange" onclick="updateStatus('${i.id}','Responding','orange')">Responding</button>
-<button class="blue" onclick="updateStatus('${i.id}','Standing Off','blue')">Standing Off</button>
-<button class="red" onclick="updateStatus('${i.id}','Busy','red')">Busy</button>
-<button class="green" onclick="updateStatus('${i.id}','Completed','green')">Completed</button>
-<textarea placeholder="Report" onchange="saveReport('${i.id}',this.value)"></textarea>
+<button class="orange" onclick="updateStatus('${i.id}','Responding')">Responding</button>
+<button class="blue" onclick="updateStatus('${i.id}','Standing Off')">Standing Off</button>
+<button class="red" onclick="updateStatus('${i.id}','Busy')">Busy</button>
+<button class="green" onclick="updateStatus('${i.id}','Completed')">Completed</button>
+`:""}
+${currentUser?.role==="dispatcher"?`
+<button class="closeBtn" onclick="closeIncident('${i.id}')">Close Incident</button>
 `:""}
 </div>`;
 });
@@ -285,7 +281,7 @@ div.innerHTML+=`
 <div class="card">
 <b>${i.priority}</b><br>
 ${i.description}<br>
-Archived
+Closed
 </div>`;
 });
 });
