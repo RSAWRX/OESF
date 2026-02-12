@@ -74,15 +74,23 @@ margin-top:5px;
 .Completed{background:#4CAF50;color:white;}
 .write-report{background:white;color:black;}
 
+textarea{
+margin-top:5px;
+padding:6px;
+border-radius:4px;
+border:1px solid #ccc;
+}
+
 @media(max-width:600px){
 button{width:100%;}
+textarea{width:100%;}
 }
 </style>
 </head>
 <body>
 
 <header>
-<div> Dispatch Command Control</div>
+<div>🚨 Dispatch Command Control</div>
 <div id="dateTime"></div>
 </header>
 
@@ -214,19 +222,21 @@ const data = snap.data();
 let elapsed = data.totalElapsed;
 
 if(status==="StandingOff" || status==="Completed"){
+if(!data.timerStopped){
 elapsed += Date.now() - data.startTime;
-if(status==="StandingOff"){document.getElementById("standOffChime").play();}
-if(status==="Completed"){document.getElementById("completedSound").play();}
+}
 await updateDoc(incidentDoc,{
 status,
 timerStopped:true,
 totalElapsed:elapsed,
 completedTime:status==="Completed"?Date.now():data.completedTime
 });
+// Play sounds
+if(status==="StandingOff"){document.getElementById("standOffChime").play();}
+if(status==="Completed"){document.getElementById("completedSound").play();}
 }else{
 await updateDoc(incidentDoc,{
-status,
-startTime:Date.now()
+status
 });
 }
 }
@@ -272,7 +282,7 @@ const i=docSnap.data();
 const id=docSnap.id;
 const elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime + i.totalElapsed);
 
-// 🔊 Status change detection
+// Status change sounds
 if(previousStatuses[id] && previousStatuses[id]!==i.status){
 if(i.status==="StandingOff"){document.getElementById("standOffChime").play();}
 if(i.status==="Completed"){document.getElementById("completedSound").play();}
