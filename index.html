@@ -18,7 +18,7 @@ input,select,textarea{width:100%;padding:8px;margin:6px 0}
 button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 .orange{background:orange;color:white}
 .blue{background:#0099ff;color:white}
-.red{background:#cc0000;color:white}
+.red{background:red;color:white}
 .green{background:green;color:white}
 .closeBtn{background:#444;color:white}
 .timer{color:#00e5ff;font-weight:bold}
@@ -27,13 +27,13 @@ a.mapLink:hover{text-decoration:underline}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
 .responder{margin-left:10px;}
 .responder b{color:#00e5ff;}
-.incDesc{color:#ff5555;font-weight:bold;} /* bold dark red */
+.incDesc{color:#ff5555;font-weight:bold;}
 </style>
 </head>
 
 <body>
 
-<header>Dispatch Command Center</header>
+<header>🚨 Incident Command Center</header>
 
 <div class="container">
 
@@ -47,7 +47,7 @@ a.mapLink:hover{text-decoration:underline}
 <div class="main">
 
 <!-- Dashboard Section -->
-<section id="dashboard" style="display:none">
+<section id="dashboard">
 <h2 class="sectionTitle">Active Incidents</h2>
 <div id="incidentBoard"></div>
 
@@ -56,7 +56,7 @@ a.mapLink:hover{text-decoration:underline}
 </section>
 
 <!-- Create Incident Section -->
-<section id="createIncident" style="display:none">
+<section id="createIncident">
 <h2>Create Incident</h2>
 <input id="address" placeholder="Address">
 <input id="description" placeholder="Description">
@@ -71,13 +71,13 @@ a.mapLink:hover{text-decoration:underline}
 </section>
 
 <!-- OnDuty Roster Section -->
-<section id="onDuty" style="display:none">
+<section id="onDuty">
 <h2 class="sectionTitle">OnDuty Roster</h2>
 <div id="rosterBoard"></div>
 </section>
 
 <!-- Sign In Section -->
-<section id="signIn" style="display:block">
+<section id="signIn">
 <h2>Sign In</h2>
 <input id="userName" placeholder="Name">
 <input id="vehicle" placeholder="Vehicle (Make/Color/Reg)">
@@ -88,11 +88,11 @@ a.mapLink:hover{text-decoration:underline}
 </div>
 
 <script>
-// Core data
+// --- Core data ---
 let incidents = [];
 let users = [];
 
-// Show section
+// --- Show section ---
 function show(id){
 document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
@@ -110,11 +110,12 @@ users.push(newUser);
 userName.value=""; vehicle.value="";
 alert(`${name} signed in!`);
 renderRoster();
-show('dashboard');
+// Automatically go to dashboard after signing in
+show("dashboard");
 renderIncidents();
 }
 
-// Render OnDuty roster
+// --- Render OnDuty Roster ---
 function renderRoster(){
 const rosterDiv = document.getElementById("rosterBoard");
 rosterDiv.innerHTML="";
@@ -137,7 +138,7 @@ status:"Active",
 responders:[],
 completed:false
 };
-incidents.unshift(incident);
+incidents.unshift(incident); // newest first
 address.value=""; description.value=""; contact.value="";
 renderIncidents();
 show("dashboard");
@@ -187,13 +188,13 @@ renderRoster();
 renderIncidents();
 }
 
-// Remove incident
+// --- Remove incident ---
 function cancelIncident(id){
 incidents = incidents.filter(i=>i.id!==id);
 renderIncidents();
 }
 
-// Color helper
+// --- Status color helper ---
 function statusColor(r){
 switch(r){
 case "Responding": return "orange";
@@ -205,7 +206,7 @@ default: return "orange";
 }
 }
 
-// Render incidents
+// --- Render incidents ---
 function renderIncidents(){
 const activeDiv = document.getElementById("incidentBoard");
 const completedDiv = document.getElementById("completedBoard");
@@ -249,7 +250,12 @@ if(r.start) r.elapsed+=1000;
 });
 renderIncidents();
 },1000);
-</script>
 
+// --- Init ---
+show("dashboard");
+renderRoster();
+renderIncidents();
+
+</script>
 </body>
 </html>
