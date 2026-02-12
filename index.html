@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Emergency Operations Dashboard - Firebase Live</title>
+<title>Emergency Operations Dashboard - Firebase Push</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -12,8 +12,7 @@
 body{margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);}
 .light{--bg:#f4f6f8;--panel:#fff;--card:#e9ecef;--text:#000;}
 
-.header{position:sticky;top:0;display:flex;align-items:center;
-background:var(--panel);padding:10px 20px;z-index:100;border-bottom:2px solid #004080;}
+.header{position:sticky;top:0;display:flex;align-items:center;background:var(--panel);padding:10px 20px;z-index:100;border-bottom:2px solid #004080;}
 .header h1{margin:0;font-size:22px;}
 .header button{margin-left:auto;padding:6px 10px;}
 
@@ -65,7 +64,6 @@ button.action:hover{background:#005fa3;}
 </div>
 
 <div class="main">
-<!-- Responder Info -->
 <section id="responder">
 <h2>Responder Info</h2>
 <input id="resName" placeholder="Name">
@@ -73,7 +71,6 @@ button.action:hover{background:#005fa3;}
 <button class="action" onclick="addResponder()">Enter</button>
 </section>
 
-<!-- Dashboard -->
 <section id="dashboard">
 <h2>Dashboard</h2>
 <h3>Active Incidents</h3>
@@ -82,7 +79,6 @@ button.action:hover{background:#005fa3;}
 <div id="dashboardRoster"></div>
 </section>
 
-<!-- Active Incidents -->
 <section id="incidents">
 <h2>Active Incidents</h2>
 <input id="incAddress" placeholder="Address">
@@ -95,13 +91,11 @@ button.action:hover{background:#005fa3;}
 <div id="incidentList"></div>
 </section>
 
-<!-- Completed Incidents -->
 <section id="completed">
 <h2>Completed Incidents</h2>
 <div id="completedList"></div>
 </section>
 
-<!-- OnDuty Roster -->
 <section id="roster">
 <h2>OnDuty Roster</h2>
 <div id="rosterList"></div>
@@ -111,6 +105,7 @@ button.action:hover{background:#005fa3;}
 
 <audio id="respondSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
 <audio id="standingSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
+<audio id="newIncidentSound" src="https://www.soundjay.com/button/beep-10.wav"></audio>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -126,10 +121,23 @@ const firebaseConfig = {
     storageBucket: "oesf-e7a8e.firebasestorage.app",
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
-
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+// Push Notifications Setup
+const messaging = firebase.messaging();
+messaging.requestPermission()
+.then(()=>messaging.getToken())
+.then(token=>console.log("FCM Token:", token))
+.catch(err=>console.warn("FCM Permission denied:", err));
+
+function notifyUser(title, body){
+  if(Notification.permission === "granted"){
+    new Notification(title, {body});
+    document.getElementById("newIncidentSound").play();
+  }
+}
 
 // Theme
 function toggleTheme(){
@@ -178,6 +186,9 @@ elapsed:0
 document.getElementById("incAddress").value="";
 document.getElementById("incDesc").value="";
 document.getElementById("incCOS").value="";
+
+// Notify all responders
+notifyUser("New Incident", `${desc} at ${addr}`);
 }
 
 // ---------- Status update ----------
@@ -204,7 +215,6 @@ renderRoster();
 renderDashboard();
 }
 
-// Active Incidents
 function renderIncidents(){
 const list = document.getElementById("incidentList");
 list.innerHTML="";
@@ -221,19 +231,16 @@ c.innerHTML=`
 <span class="incident-desc">${i.description}</span><br>
 COS: ${i.cos}<br>
 Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
-${Object.keys(i.assigned).map(r=>{
-return `<button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'${r}','Responding')">Responding</button>
-<button class="status-btn Busy" onclick="updateIncidentStatus(${i.id},'${r}','Busy')">Busy</button>
-<button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'${r}','StandingOff')">Standing Off</button>
-<button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'${r}','Completed')">Completed</button>`;
-}).join('')}
+<button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'Responder','Responding')">Responding</button>
+<button class="status-btn Busy" onclick="updateIncidentStatus(${i.id},'Responder','Busy')">Busy</button>
+<button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'Responder','StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'Responder','Completed')">Completed</button>
 <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}" target="_blank">Open Map</a>
 `;
 list.appendChild(c);
 });
-});
+}
 
-// Completed Incidents
 function renderCompleted(){
 const list = document.getElementById("completedList");
 list.innerHTML="";
@@ -255,7 +262,6 @@ list.appendChild(c);
 });
 }
 
-// OnDuty Roster
 function renderRoster(){
 const list = document.getElementById("rosterList");
 list.innerHTML="";
@@ -272,7 +278,6 @@ list.appendChild(c);
 });
 }
 
-// Dashboard
 function renderDashboard(){
 const dashInc = document.getElementById("dashboardIncidents");
 const dashRoster = document.getElementById("dashboardRoster");
@@ -296,8 +301,6 @@ Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</spa
 `;
 dashInc.appendChild(c);
 });
-});
-
 db.ref("responders").on("value", snap=>{
 const data = snap.val();
 if(!data) return;
@@ -309,6 +312,7 @@ c.innerHTML=`${r.name} | ${r.vehicle} | ${r.status}`;
 dashRoster.appendChild(c);
 });
 });
+}
 
 // Auto refresh timers
 setInterval(renderAll, 1000);
