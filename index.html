@@ -2,69 +2,95 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Live Dispatch System</title>
+<title>Dispatch System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{margin:0;font-family:Segoe UI;background:#0b1e35;color:white}
-header{background:#132c4d;padding:15px;font-size:20px}
-.container{display:flex;height:100vh}
-.sidebar{width:250px;background:#132c4d;padding:10px}
-.sidebar button{width:100%;margin:5px 0;padding:10px;background:#1f3f66;border:none;color:white;cursor:pointer}
-.sidebar button:hover{background:#29598f}
-.main{flex:1;padding:20px;overflow:auto}
-.card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px}
-select,input,textarea{width:100%;padding:6px;margin:4px 0}
-button.action{background:#0074D9;color:white;border:none;padding:8px;margin-top:6px;cursor:pointer}
-.timer{font-weight:bold;color:#00d4ff}
+body{
+  margin:0;
+  font-family:Segoe UI;
+  background:#0b1e35;
+  color:white;
+}
+header{
+  background:#132c4d;
+  padding:15px;
+  font-size:20px;
+}
+.container{
+  display:flex;
+  height:100vh;
+}
+.sidebar{
+  width:250px;
+  background:#132c4d;
+  padding:10px;
+}
+.sidebar button{
+  width:100%;
+  margin:5px 0;
+  padding:10px;
+  background:#1f3f66;
+  border:none;
+  color:white;
+  cursor:pointer;
+}
+.sidebar button:hover{
+  background:#29598f;
+}
+.main{
+  flex:1;
+  padding:20px;
+  overflow:auto;
+}
+.card{
+  background:#1f3f66;
+  padding:12px;
+  margin:10px 0;
+  border-radius:6px;
+}
+input{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+}
+button.action{
+  background:#0074D9;
+  color:white;
+  border:none;
+  padding:10px;
+  cursor:pointer;
+  width:100%;
+}
 </style>
 </head>
 
 <body>
 
-<header>🚨 Live Emergency Dispatch</header>
+<header>🚨 Emergency Dispatch System</header>
 
 <div class="container">
 
 <div class="sidebar">
 <button onclick="show('login')">Sign In</button>
-<button onclick="show('dashboard')">Dashboard</button>
-<button onclick="show('incidents')">Incidents</button>
 <button onclick="show('contacts')">Contacts</button>
 </div>
 
 <div class="main">
 
 <section id="login">
-<h2>Sign In</h2>
-<input id="name" placeholder="Name">
-<input id="registration" placeholder="Unit Registration">
-<select id="role">
-<option value="Responder">Responder</option>
-<option value="Dispatcher">Dispatcher</option>
-</select>
+<h2>Responder Sign In</h2>
+
+<input id="name" placeholder="Responder Name">
+<input id="vehicleMakeModel" placeholder="Vehicle Make & Model">
+<input id="vehicleColour" placeholder="Vehicle Colour">
+<input id="registration" placeholder="Vehicle Registration">
+
 <button class="action" onclick="signIn()">Sign In</button>
 </section>
 
-<section id="dashboard" style="display:none">
-<h2>Active Dashboard</h2>
-<div id="dashboardList"></div>
-</section>
-
-<section id="incidents" style="display:none">
-<h2>Create Incident</h2>
-<input id="address" placeholder="Address">
-<select id="priority">
-<option>Low</option>
-<option>Medium</option>
-<option>High</option>
-<option>Critical</option>
-</select>
-<button class="action" onclick="createIncident()">Create Incident</button>
-</section>
-
 <section id="contacts" style="display:none">
-<h2>Active Units</h2>
+<h2>Active Responders</h2>
 <div id="contactList"></div>
 </section>
 
@@ -74,156 +100,76 @@ button.action{background:#0074D9;color:white;border:none;padding:8px;margin-top:
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc } 
+import { getFirestore, collection, addDoc, onSnapshot }
 from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-/* 🔴 PASTE YOUR FIREBASE CONFIG HERE */
+/* 🔴 REPLACE WITH YOUR REAL FIREBASE CONFIG */
 const firebaseConfig = {
-  apiKey: "PASTE",
-  authDomain: "PASTE",
-  projectId: "PASTE",
-  storageBucket: "PASTE",
-  messagingSenderId: "PASTE",
-  appId: "PASTE"
+  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+    authDomain: "oesf-e7a8e.firebaseapp.com",
+    projectId: "oesf-e7a8e",
+    storageBucket: "oesf-e7a8e.firebasestorage.app",
+    messagingSenderId: "844363489759",
+    appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-let currentUser=null;
+let currentUser = null;
 
+/* Navigation */
 window.show = function(id){
-document.querySelectorAll("section").forEach(s=>s.style.display="none");
-document.getElementById(id).style.display="block";
+  document.querySelectorAll("section").forEach(s=>s.style.display="none");
+  document.getElementById(id).style.display="block";
 }
 
-/* SIGN IN */
+/* Sign In */
 window.signIn = async function(){
-currentUser={
-name:name.value,
-registration:registration.value,
-role:role.value,
-status:"Available"
-};
 
-await addDoc(collection(db,"units"),currentUser);
+  if(!name.value || !vehicleMakeModel.value || !vehicleColour.value || !registration.value){
+    alert("Please complete all fields.");
+    return;
+  }
 
-alert("Signed in successfully as "+currentUser.name);
-show("dashboard");
+  currentUser = {
+    name: name.value,
+    vehicleMakeModel: vehicleMakeModel.value,
+    vehicleColour: vehicleColour.value,
+    registration: registration.value,
+    status: "Available",
+    signedInAt: Date.now()
+  };
+
+  try{
+    await addDoc(collection(db,"units"), currentUser);
+    alert("Signed in successfully as " + currentUser.name);
+    show("contacts");
+  }
+  catch(error){
+    console.error(error);
+    alert("Error signing in. Check console.");
+  }
 }
 
-/* CREATE INCIDENT */
-window.createIncident = async function(){
-if(currentUser.role!=="Dispatcher"){
-alert("Dispatcher only");
-return;
-}
-
-await addDoc(collection(db,"incidents"),{
-address:address.value,
-priority:priority.value,
-status:"Waiting",
-assigned:null,
-created:Date.now(),
-timerRunning:false,
-report:null
-});
-}
-
-/* DASHBOARD REALTIME */
-onSnapshot(collection(db,"incidents"), snapshot=>{
-const div=document.getElementById("dashboardList");
-div.innerHTML="";
-
-snapshot.forEach(docSnap=>{
-const data=docSnap.data();
-const id=docSnap.id;
-
-let elapsed="00:00";
-if(data.timerRunning){
-const diff=Math.floor((Date.now()-data.created)/1000);
-const min=Math.floor(diff/60).toString().padStart(2,'0');
-const sec=(diff%60).toString().padStart(2,'0');
-elapsed=min+":"+sec;
-}
-
-div.innerHTML+=`
-<div class="card">
-<b>${data.address}</b> - ${data.priority}<br>
-Status: ${data.status}<br>
-Responding Unit: ${data.assigned || "None"}<br>
-Time: <span class="timer">${elapsed}</span><br>
-
-${currentUser && currentUser.role==="Responder" && !data.assigned ? 
-`<button onclick="respond('${id}')">Respond</button>` : ""}
-
-${currentUser && data.assigned===currentUser.registration ? `
-<button onclick="updateStatus('${id}','On Scene')">On Scene</button>
-<button onclick="updateStatus('${id}','Completed')">Completed</button>
-<button onclick="updateStatus('${id}','Busy')">Busy</button>
-`:""}
-
-${data.status==="Completed" && !data.report ? `
-<textarea id="report${id}" placeholder="Write Report"></textarea>
-<button onclick="submitReport('${id}')">Submit Report</button>
-`:""}
-
-</div>`;
-});
-});
-
-/* RESPOND */
-window.respond = async function(id){
-await updateDoc(doc(db,"incidents",id),{
-assigned:currentUser.registration,
-status:"Responding",
-timerRunning:true
-});
-}
-
-/* UPDATE STATUS */
-window.updateStatus = async function(id,status){
-if(status==="On Scene"){
-await updateDoc(doc(db,"incidents",id),{
-status:"On Scene",
-timerRunning:false
-});
-}
-else if(status==="Completed"){
-await updateDoc(doc(db,"incidents",id),{
-status:"Completed",
-timerRunning:false
-});
-}
-else{
-await updateDoc(doc(db,"incidents",id),{
-status:status
-});
-}
-}
-
-/* REPORT */
-window.submitReport = async function(id){
-const text=document.getElementById("report"+id).value;
-await updateDoc(doc(db,"incidents",id),{
-report:text
-});
-alert("Report submitted.");
-}
-
-/* CONTACTS REALTIME */
+/* Live Contacts */
 onSnapshot(collection(db,"units"), snapshot=>{
-const div=document.getElementById("contactList");
-div.innerHTML="";
-snapshot.forEach(docSnap=>{
-const u=docSnap.data();
-div.innerHTML+=`
-<div class="card">
-<b>${u.name}</b><br>
-Unit: ${u.registration}<br>
-Status: ${u.status}
-</div>`;
-});
+  const div = document.getElementById("contactList");
+  div.innerHTML = "";
+
+  snapshot.forEach(doc=>{
+    const u = doc.data();
+
+    div.innerHTML += `
+      <div class="card">
+        <b>${u.name}</b><br>
+        Vehicle: ${u.vehicleMakeModel}<br>
+        Colour: ${u.vehicleColour}<br>
+        Registration: ${u.registration}<br>
+        Status: ${u.status}
+      </div>
+    `;
+  });
 });
 
 show("login");
