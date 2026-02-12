@@ -90,7 +90,7 @@ textarea{width:100%;}
 <body>
 
 <header>
-<div>🚨 Dispatch Command Control</div>
+<div>Dispatch Command Control</div>
 <div id="dateTime"></div>
 </header>
 
@@ -195,7 +195,7 @@ address,
 description,
 priority,
 cos,
-status:"Responding",
+status:"No Response",
 startTime:Date.now(),
 timerStopped:false,
 totalElapsed:0,
@@ -221,12 +221,20 @@ const snap = await incidentDoc.get();
 const data = snap.data();
 let elapsed = data.totalElapsed;
 
+// Map status names
+let newStatus = data.status;
+if(status==="Responding") newStatus="Responding";
+if(status==="StandingOff") newStatus="Standing Off";
+if(status==="Busy") newStatus="Not Available";
+if(status==="Completed") newStatus="Completed";
+
+// Stop timer only if Standing Off or Completed
 if(status==="StandingOff" || status==="Completed"){
 if(!data.timerStopped){
 elapsed += Date.now() - data.startTime;
 }
 await updateDoc(incidentDoc,{
-status,
+status:newStatus,
 timerStopped:true,
 totalElapsed:elapsed,
 completedTime:status==="Completed"?Date.now():data.completedTime
@@ -235,9 +243,7 @@ completedTime:status==="Completed"?Date.now():data.completedTime
 if(status==="StandingOff"){document.getElementById("standOffChime").play();}
 if(status==="Completed"){document.getElementById("completedSound").play();}
 }else{
-await updateDoc(incidentDoc,{
-status
-});
+await updateDoc(incidentDoc,{status:newStatus});
 }
 }
 
@@ -284,7 +290,7 @@ const elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime + i.totalEla
 
 // Status change sounds
 if(previousStatuses[id] && previousStatuses[id]!==i.status){
-if(i.status==="StandingOff"){document.getElementById("standOffChime").play();}
+if(i.status==="Standing Off"){document.getElementById("standOffChime").play();}
 if(i.status==="Completed"){document.getElementById("completedSound").play();}
 }
 previousStatuses[id]=i.status;
