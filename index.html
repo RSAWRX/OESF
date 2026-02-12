@@ -68,15 +68,14 @@ margin-top:5px;
 margin-top:5px;
 }
 
-.Responding{background:#2196F3;color:white;}
-.Busy{background:#ff9800;color:white;}
-.StandingOff{background:#9c27b0;color:white;}
+.Responding{background:orange;color:white;}
+.Busy{background:yellow;color:black;}
+.StandingOff{background:#0d47a1;color:white;} /* dark blue */
 .Completed{background:#4CAF50;color:white;}
+.write-report{background:white;color:black;}
 
 @media(max-width:600px){
-button{
-width:100%;
-}
+button{width:100%;}
 }
 </style>
 </head>
@@ -132,6 +131,8 @@ width:100%;
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+// --- Firebase Config ---
+// Paste your Firebase config here
 const firebaseConfig = {
  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
@@ -146,10 +147,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const incidentsRef = collection(db,"incidents");
 
+// --- Show dispatch form ---
 window.showDispatch=function(){
 document.getElementById("dispatchPage").style.display="block";
 }
 
+// --- Add Incident ---
 window.addIncident=async function(){
 const address=document.getElementById("address").value;
 const description=document.getElementById("description").value;
@@ -164,7 +167,9 @@ cos,
 status:"Responding",
 startTime:Date.now(),
 timerStopped:false,
-totalElapsed:0
+totalElapsed:0,
+completedTime:null,
+report:""
 });
 
 // 🔔 Alarm
@@ -173,26 +178,45 @@ alarm.volume=1.0;
 alarm.play();
 
 // 📳 Vibrate mobile
-if(navigator.vibrate){
-navigator.vibrate([300,150,300,150,500]);
-}
+if(navigator.vibrate){navigator.vibrate([300,150,300,150,500]);}
 
 document.getElementById("dispatchPage").style.display="none";
 }
 
+// --- Set Status ---
 window.setStatus=async function(id,status){
-await updateDoc(doc(db,"incidents",id),{status});
-}
-
-window.stopTimer=async function(id,status){
 const incidentDoc=doc(db,"incidents",id);
+const snap=await incidentDoc.get();
+const data = snap.data();
+let elapsed = data.totalElapsed;
+if(status==="StandingOff" || status==="Completed"){
+elapsed += Date.now()-data.startTime;
+if(status==="StandingOff"){document.getElementById("standOffChime").play();}
+if(status==="Completed"){document.getElementById("completedSound").play();}
 await updateDoc(incidentDoc,{
 status,
 timerStopped:true,
-totalElapsed:Date.now()
+totalElapsed:elapsed,
+completedTime:status==="Completed"?Date.now():data.completedTime
+});
+}else{
+await updateDoc(incidentDoc,{
+status,
+startTime:Date.now()
 });
 }
+}
 
+// --- Write report ---
+window.openReport=function(id){
+let report = prompt("Enter report for this incident:");
+if(report!==null){
+db.collection("incidents").doc(id).update({report});
+alert("Report saved.");
+}
+}
+
+// --- Clear Completed ---
 window.clearCompleted=async function(){
 onSnapshot(incidentsRef,(snapshot)=>{
 snapshot.forEach(docSnap=>{
@@ -203,10 +227,7 @@ deleteDoc(doc(db,"incidents",docSnap.id));
 });
 }
 
-window.openReport=function(id){
-window.location.href="?report="+id;
-}
-
+// --- Format Time ---
 function formatTime(ms){
 let seconds=Math.floor(ms/1000);
 let h=Math.floor(seconds/3600);
@@ -215,61 +236,46 @@ let s=seconds%60;
 return `${h}h ${m}m ${s}s`;
 }
 
+// --- Render Incidents Live ---
 let previousStatuses={};
-
 onSnapshot(incidentsRef,(snapshot)=>{
 let activeHTML="";
 let completedHTML="";
-
 snapshot.forEach(docSnap=>{
 const i=docSnap.data();
 const id=docSnap.id;
-
-let elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime);
+const elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime + i.totalElapsed);
 
 // 🔊 Status change detection
 if(previousStatuses[id] && previousStatuses[id]!==i.status){
-
-if(i.status==="StandingOff"){
-const chime=document.getElementById("standOffChime");
-chime.volume=1.0;
-chime.play();
+if(i.status==="StandingOff"){document.getElementById("standOffChime").play();}
+if(i.status==="Completed"){document.getElementById("completedSound").play();}
 }
-
-if(i.status==="Completed"){
-const done=document.getElementById("completedSound");
-done.volume=1.0;
-done.play();
-}
-}
-
 previousStatuses[id]=i.status;
 
-let card=`
-<div class="card">
+let card=`<div class="card">
 <b>${i.address}</b><br>
 <span class="description">${i.description}</span><br>
 Priority: ${i.priority}<br>
 COS: ${i.cos}<br>
 <span class="status-label">Status: ${i.status}</span><br>
+Created: ${new Date(i.startTime).toLocaleString()}<br>
+${i.completedTime?`Completed: ${new Date(i.completedTime).toLocaleString()}<br>`:""}
 Time: ${formatTime(elapsed)}<br>
-<a class="map-link" target="_blank"
-href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">
-Open Map</a><br>
+<a class="map-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a><br>
 `;
 
 if(i.status!=="Completed"){
 card+=`
 <button class="status-btn Responding" onclick="setStatus('${id}','Responding')">Responding</button>
 <button class="status-btn Busy" onclick="setStatus('${id}','Busy')">Busy</button>
-<button class="status-btn StandingOff" onclick="stopTimer('${id}','StandingOff')">Standing Off</button>
-<button class="status-btn Completed" onclick="stopTimer('${id}','Completed')">Completed</button>
+<button class="status-btn StandingOff" onclick="setStatus('${id}','StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="setStatus('${id}','Completed')">Completed</button>
+<button class="write-report" onclick="openReport('${id}')">Write Report</button>
 `;
-card+="</div>";
-activeHTML+=card;
+activeHTML+=card+"</div>";
 }else{
-card+="</div>";
-completedHTML+=card;
+completedHTML+=card+"</div>";
 }
 });
 
@@ -277,7 +283,7 @@ document.getElementById("activeList").innerHTML=activeHTML;
 document.getElementById("completedList").innerHTML=completedHTML;
 });
 
-// 🕒 Live Clock
+// --- Live Clock ---
 setInterval(()=>{
 const now=new Date();
 document.getElementById("dateTime").innerText=now.toLocaleString();
