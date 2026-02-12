@@ -2,208 +2,211 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Emergency Dashboard</title>
+<title>Emergency Operations Dashboard</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
 body{margin:0;font-family:Segoe UI,Arial;background:#001f3f;color:white;}
-.header{position:sticky;top:0;background:#00264d;padding:10px 20px;display:flex;align-items:center;border-bottom:2px solid #004080;}
-.header h1{margin:0;font-size:22px;}
-.header button{margin-left:10px;}
+.header{position:sticky;top:0;background:#00264d;padding:10px 15px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #004080;flex-wrap:wrap;}
+.header h1{margin:0;font-size:20px;}
+.header button{margin-left:10px;margin-top:5px;}
+#clock{font-weight:bold;margin-top:5px;}
+
 .container{display:flex;height:calc(100vh - 60px);}
-.sidebar{width:240px;background:#00264d;display:flex;flex-direction:column;}
-.sidebar button{padding:16px;border:none;background:none;color:white;text-align:left;cursor:pointer;border-bottom:1px solid #004080;}
+.sidebar{width:220px;background:#00264d;display:flex;flex-direction:column;flex-shrink:0;}
+.sidebar button{padding:14px;border:none;background:none;color:white;text-align:left;cursor:pointer;border-bottom:1px solid #004080;font-size:16px;}
 .sidebar button:hover{background:#004080;}
-.main{flex:1;padding:20px;overflow-y:auto;}
+
+.main{flex:1;padding:15px;overflow-y:auto;}
 section{display:none;}
 section.active{display:block;}
-.card{background:#003366;padding:14px;border-radius:10px;margin:10px 0;}
-.status-btn{padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;cursor:pointer;}
+.card{background:#003366;padding:12px;border-radius:10px;margin:8px 0;}
+.status-btn{padding:8px 10px;border:none;border-radius:4px;margin:3px;color:white;cursor:pointer;font-size:14px;}
 .Responding{background:orange;} .Busy{background:blue;} .StandingOff{background:red;} .Completed{background:green;}
-.timer{font-size:18px;font-weight:bold;padding:4px 8px;border-radius:6px;}
+.timer{font-size:16px;font-weight:bold;padding:4px 6px;border-radius:6px;}
 .incident-desc{color:#8B0000;font-weight:bold;}
 .map-link{display:inline-block;background:#0074D9;color:white;padding:4px 8px;border-radius:4px;text-decoration:none;margin-top:4px;}
 .map-link:hover{background:#005fa3;}
-#clock{margin-left:auto;font-weight:bold;}
+
+/* INPUTS AND BUTTONS FULL WIDTH ON MOBILE */
+input, select, textarea, button.action{width:100%;box-sizing:border-box;margin:5px 0;font-size:16px;padding:8px;}
+button.action{border-radius:5px;cursor:pointer;}
+
+/* RESPONSIVE LAYOUT */
+@media (max-width: 768px) {
+  .container{flex-direction:column;}
+  .sidebar{width:100%;flex-direction:row;overflow-x:auto;}
+  .sidebar button{flex:1;white-space:nowrap;font-size:14px;padding:10px;}
+  .main{padding:10px;}
+}
 </style>
 </head>
+
 <body>
 
 <div class="header">
-<h1>Emergency Dashboard</h1>
+<h1>Emergency Operations Dashboard</h1>
 <div id="clock"></div>
 <button onclick="toggleTheme()">🌗 Theme</button>
 </div>
 
 <div class="container">
 <div class="sidebar">
-<button onclick="show('responder')">Responder Info</button>
-<button onclick="show('dashboard')">Dashboard</button>
 <button onclick="show('addIncident')">Add Incident</button>
-<button onclick="show('completed')">Completed Incidents</button>
-<button onclick="show('roster')">OnDuty Roster</button>
+<button onclick="show('activeIncidents')">Active Incidents</button>
+<button onclick="show('completedIncidents')">Completed Incidents</button>
 </div>
 
 <div class="main">
-<section id="responder">
-<h2>Responder Info</h2>
-<input id="resName" placeholder="Name">
-<input id="resVehicle" placeholder="Vehicle (Make/Model/Color/Reg)">
-<button onclick="addResponder()">Enter</button>
-<div id="resMessage"></div>
-</section>
 
-<section id="dashboard">
-<h2>Dashboard</h2>
-<div id="dashboardIncidents"></div>
-<div id="dashboardRoster"></div>
-</section>
-
+<!-- Add Incident Section -->
 <section id="addIncident">
-<h2>Add Incident</h2>
-<input id="incAddress" placeholder="Address">
-<input id="incDesc" placeholder="Description">
-<select id="incSeverity">
-<option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
+<h2>Create Incident</h2>
+<input id="address" placeholder="Address">
+<input id="description" placeholder="Description">
+<select id="priority">
+<option>Low</option><option>Medium</option>
+<option>High</option><option>Critical</option>
 </select>
-<input id="incCOS" placeholder="Contact On Scene">
-<button onclick="addIncident()">Add Incident</button>
+<input id="cos" placeholder="Contact On Scene">
+<button class="action" onclick="addIncident()">Add Incident</button>
 </section>
 
-<section id="completed">
+<!-- Active Incidents -->
+<section id="activeIncidents">
+<h2>Active Incidents</h2>
+<div id="incidentList"></div>
+</section>
+
+<!-- Completed Incidents -->
+<section id="completedIncidents">
 <h2>Completed Incidents</h2>
 <div id="completedList"></div>
 </section>
 
-<section id="roster">
-<h2>OnDuty Roster</h2>
-<div id="rosterList"></div>
-</section>
 </div>
 </div>
-
-<audio id="respondSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
-<audio id="standingSound" src="https://www.soundjay.com/button/beep-09.wav"></audio>
-<audio id="newIncidentSound" src="https://www.soundjay.com/button/beep-10.wav"></audio>
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-// --- PASTE YOUR FIREBASE CONFIG HERE ---
-const firebaseConfig = {
-  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
-    authDomain: "oesf-e7a8e.firebaseapp.com",
-    projectId: "oesf-e7a8e",
-    storageBucket: "oesf-e7a8e.firebasestorage.app",
-    messagingSenderId: "844363489759",
-    appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+let incidents = [];
+let completedIncidents = [];
 
-// ---------- Theme ----------
-function toggleTheme(){ document.body.classList.toggle("light"); }
-
-// ---------- Page Navigation ----------
+// Show section
 function show(id){
-document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
+  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
-// ---------- Clock ----------
-function updateClock() {
+// Clock
+function updateClock(){
   const now = new Date();
-  const options = { 
-    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit', second: '2-digit'
-  };
-  document.getElementById('clock').innerText = now.toLocaleString('en-US', options);
+  document.getElementById("clock").textContent = now.toLocaleString();
 }
-setInterval(updateClock, 1000);
+setInterval(updateClock,1000);
 updateClock();
 
-// ---------- Responder ----------
-function addResponder(){
-const name=document.getElementById("resName").value.trim();
-const vehicle=document.getElementById("resVehicle").value.trim();
-if(!name||!vehicle){ alert("Enter both name and vehicle"); return; }
-db.ref("responders/"+name).set({name,vehicle,status:"Available"});
-document.getElementById("resName").value="";
-document.getElementById("resVehicle").value="";
-document.getElementById("resMessage").innerText=`${name} entered as responder!`;
+// Theme toggle
+function toggleTheme(){
+  document.body.classList.toggle("light");
 }
 
-// ---------- Incidents ----------
+// Add Incident
 function addIncident(){
-const addr=document.getElementById("incAddress").value.trim();
-const desc=document.getElementById("incDesc").value.trim();
-const sev=document.getElementById("incSeverity").value;
-const cos=document.getElementById("incCOS").value.trim();
-if(!addr||!desc||!sev){ alert("Fill in all fields"); return; }
-
-const incId=Date.now();
-db.ref("incidents/"+incId).set({
-id:incId,address:addr,description:desc,severity:sev,cos:cos,status:"Responding",assigned:[],start:Date.now(),elapsed:0
-});
-document.getElementById("incAddress").value="";
-document.getElementById("incDesc").value="";
-document.getElementById("incCOS").value="";
-document.getElementById("newIncidentSound").play();
+  const address = document.getElementById("address").value;
+  const desc = document.getElementById("description").value;
+  const priority = document.getElementById("priority").value;
+  const cos = document.getElementById("cos").value;
+  if(!address || !desc || !priority || !cos){alert("Fill all fields"); return;}
+  
+  const incident = {
+    id: Date.now(),
+    address, description: desc,
+    priority, cos,
+    status: "Responding",
+    start: Date.now(),
+    elapsed: 0
+  };
+  incidents.unshift(incident); // newest first
+  renderIncidents();
+  document.getElementById("address").value="";
+  document.getElementById("description").value="";
+  document.getElementById("priority").value="Low";
+  document.getElementById("cos").value="";
 }
 
-// ---------- Status update ----------
-function updateIncidentStatus(incId,resName,newStatus){
-const incRef=db.ref("incidents/"+incId);
-incRef.once("value").then(snap=>{
-const inc=snap.val();
-if(!inc.assigned.includes(resName)) inc.assigned.push(resName);
-if(newStatus==="StandingOff"||newStatus==="Completed") inc.elapsed+=Date.now()-inc.start;
-if(newStatus!=="Completed") inc.start=Date.now();
-inc.status=newStatus;
-incRef.set(inc);
-if(newStatus==="Responding") document.getElementById("respondSound").play();
-if(newStatus==="StandingOff") document.getElementById("standingSound").play();
-});
+// Render Active Incidents
+function renderIncidents(){
+  const container = document.getElementById("incidentList");
+  container.innerHTML="";
+  incidents.forEach(i=>{
+    const t = i.status==="StandingOff"||i.status==="Completed"?i.elapsed:i.elapsed+(Date.now()-i.start);
+    const c = document.createElement("div");
+    c.className="card";
+    c.innerHTML=`
+      <b>${i.address}</b><br>
+      <span class="incident-desc">${i.description}</span><br>
+      Priority: ${i.priority}<br>
+      COS: ${i.cos}<br>
+      <span class="timer ${i.status}">${new Date(t).toISOString().substr(11,8)}</span><br>
+      <a class="map-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a><br>
+      <button class="status-btn Responding" onclick="updateStatus(${i.id},'Responding')">Responding</button>
+      <button class="status-btn Busy" onclick="updateStatus(${i.id},'Busy')">Busy</button>
+      <button class="status-btn StandingOff" onclick="updateStatus(${i.id},'StandingOff')">Standing Off</button>
+      <button class="status-btn Completed" onclick="updateStatus(${i.id},'Completed')">Completed</button>
+      <button class="status-btn Completed" onclick="closeIncident(${i.id})">Close Incident</button>
+    `;
+    container.appendChild(c);
+  });
+  renderCompleted();
 }
 
-// ---------- Realtime Render ----------
-db.ref("responders").on("value", snap=>{
-const data = snap.val()||{};
-const list = document.getElementById("rosterList");
-const dashRoster = document.getElementById("dashboardRoster");
-list.innerHTML=""; dashRoster.innerHTML="";
-Object.values(data).forEach(r=>{
-list.innerHTML+=`<div class="card">${r.name} | ${r.vehicle} | ${r.status}</div>`;
-dashRoster.innerHTML+=`<div class="card">${r.name} | ${r.vehicle} | ${r.status}</div>`;
-});
-});
+// Update status
+function updateStatus(id,status){
+  const i = incidents.find(x=>x.id===id);
+  if(!i) return;
+  if(status==="StandingOff" || status==="Completed"){
+    i.elapsed += Date.now()-i.start;
+  }
+  i.status=status;
+  if(status!=="Completed") i.start = Date.now();
+  renderIncidents();
+}
 
-db.ref("incidents").on("value", snap=>{
-const data = snap.val()||{};
-const dashInc = document.getElementById("dashboardIncidents");
-const completedList = document.getElementById("completedList");
-dashInc.innerHTML=""; completedList.innerHTML="";
-Object.values(data).sort((a,b)=>b.start-a.start).forEach(i=>{
-const t=i.status==="StandingOff"?i.elapsed:i.elapsed+(Date.now()-i.start);
-const html=`<b>${i.address}</b> (<span class="sev-${i.severity}">${i.severity}</span>)<br>
-<span class="incident-desc">${i.description}</span><br>
-Assigned: ${i.assigned.join(", ") || "None"}<br>
-Status: ${i.status}<br>
-Time elapsed: <span class="timer">${new Date(t).toISOString().substr(11,8)}</span><br>
-<a target="_blank" class="map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a><br>
-<button class="status-btn Responding" onclick="updateIncidentStatus(${i.id},'Responder','Responding')">Responding</button>
-<button class="status-btn Busy" onclick="updateIncidentStatus(${i.id},'Responder','Busy')">Busy</button>
-<button class="status-btn StandingOff" onclick="updateIncidentStatus(${i.id},'Responder','StandingOff')">Standing Off</button>
-<button class="status-btn Completed" onclick="updateIncidentStatus(${i.id},'Responder','Completed')">Completed</button>
-`;
+// Close Incident
+function closeIncident(id){
+  const idx = incidents.findIndex(x=>x.id===id);
+  if(idx>-1){
+    const [i] = incidents.splice(idx,1);
+    i.status="Completed";
+    i.elapsed += Date.now()-i.start;
+    completedIncidents.unshift(i);
+    renderIncidents();
+  }
+}
 
-if(i.status==="Completed"){ completedList.innerHTML+=`<div class="card completed">${html}</div>`; }
-else{ dashInc.innerHTML+=`<div class="card">${html}</div>`; }
-});
-});
+// Render Completed
+function renderCompleted(){
+  const container = document.getElementById("completedList");
+  container.innerHTML="";
+  completedIncidents.forEach(i=>{
+    const c = document.createElement("div");
+    c.className="card Completed";
+    c.innerHTML=`
+      <b>${i.address}</b><br>
+      <span class="incident-desc">${i.description}</span><br>
+      Priority: ${i.priority}<br>
+      COS: ${i.cos}<br>
+      Time: ${new Date(i.elapsed).toISOString().substr(11,8)}<br>
+      <a class="map-link" target="_blank" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">Open Map</a>
+    `;
+    container.appendChild(c);
+  });
+}
 
-// Initial page
-show("addIncident");
+// Initial render
+show('addIncident');
+renderIncidents();
 </script>
+
 </body>
 </html>
