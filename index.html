@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Dispatch System</title>
+<title>Emergency Dispatch System</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -17,6 +17,7 @@ header{background:#132c4d;padding:15px;font-size:20px}
 input,select,textarea{width:100%;padding:8px;margin:6px 0}
 button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:pointer}
 .timer{color:#00d4ff;font-weight:bold}
+.sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
 </style>
 </head>
 
@@ -27,14 +28,15 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 <div class="container">
 
 <div class="sidebar">
-<button onclick="show('login')">Sign In</button>
 <button onclick="show('dashboard')">Dashboard</button>
 <button onclick="show('createIncident')">Create Incident</button>
-<button onclick="show('contacts')">Contacts</button>
+<button onclick="show('roster')">OnDuty Roster</button>
+<button id="signinBtn" onclick="show('login')">Sign In</button>
 </div>
 
 <div class="main">
 
+<!-- SIGN IN -->
 <section id="login">
 <h2>Responder Sign In</h2>
 <input id="name" placeholder="Responder Name">
@@ -44,14 +46,23 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 <button class="action" onclick="signIn()">Sign In</button>
 </section>
 
+<!-- DASHBOARD -->
 <section id="dashboard" style="display:none">
 <h2>Live Dashboard</h2>
+
+<div class="sectionTitle">Active Incidents</div>
 <div id="incidentBoard"></div>
+
+<div class="sectionTitle">OnDuty Roster</div>
+<div id="rosterBoard"></div>
+
 </section>
 
+<!-- CREATE INCIDENT -->
 <section id="createIncident" style="display:none">
 <h2>Create Incident</h2>
 <input id="address" placeholder="Incident Address">
+<input id="description" placeholder="Incident Description">
 <select id="priority">
 <option>Low</option>
 <option>Medium</option>
@@ -61,9 +72,10 @@ button.action{background:#0074D9;color:white;border:none;padding:10px;cursor:poi
 <button class="action" onclick="createIncident()">Create Incident</button>
 </section>
 
-<section id="contacts" style="display:none">
-<h2>Active Responders</h2>
-<div id="contactList"></div>
+<!-- ROSTER PAGE -->
+<section id="roster" style="display:none">
+<h2>OnDuty Roster</h2>
+<div id="rosterList"></div>
 </section>
 
 </div>
@@ -77,7 +89,7 @@ from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 /* 🔴 REPLACE WITH YOUR FIREBASE CONFIG */
 const firebaseConfig = {
-  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+ apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
@@ -96,8 +108,9 @@ document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
 }
 
-/* Sign In */
+/* SIGN IN */
 window.signIn=async function(){
+
 if(!name.value||!vehicleMakeModel.value||!vehicleColour.value||!registration.value){
 alert("Complete all fields.");
 return;
@@ -114,24 +127,26 @@ status:"Available"
 await addDoc(collection(db,"units"),currentUser);
 
 alert("Signed in successfully.");
+
+/* Hide sign-in page after login */
+document.getElementById("signinBtn").style.display="none";
 show("dashboard");
 }
 
-/* Create Incident */
+/* CREATE INCIDENT */
 window.createIncident=async function(){
 await addDoc(collection(db,"incidents"),{
 address:address.value,
+description:description.value,
 priority:priority.value,
 status:"Waiting",
 assigned:null,
-created:Date.now(),
-arrivalTime:null,
-report:null
+created:Date.now()
 });
 alert("Incident Created.");
 }
 
-/* Dashboard Live */
+/* LIVE INCIDENT DASHBOARD */
 onSnapshot(collection(db,"incidents"),snapshot=>{
 const div=document.getElementById("incidentBoard");
 div.innerHTML="";
@@ -140,49 +155,25 @@ snapshot.forEach(docSnap=>{
 const data=docSnap.data();
 const id=docSnap.id;
 
-let timerText="--:--";
-
-if(data.status==="Responding"){
 let diff=Math.floor((Date.now()-data.created)/1000);
 let m=Math.floor(diff/60).toString().padStart(2,"0");
 let s=(diff%60).toString().padStart(2,"0");
-timerText=m+":"+s;
-}
-
-if(data.status==="On Scene" && data.arrivalTime){
-let diff=Math.floor((data.arrivalTime-data.created)/1000);
-let m=Math.floor(diff/60).toString().padStart(2,"0");
-let s=(diff%60).toString().padStart(2,"0");
-timerText=m+":"+s+" (Arrived)";
-}
 
 div.innerHTML+=`
 <div class="card">
-<b>${data.address}</b> - ${data.priority}<br>
-Status: ${data.status}<br>
-Assigned: ${data.assigned||"None"}<br>
-Response Time: <span class="timer">${timerText}</span><br>
-
+<b>${data.priority}</b><br>
+Description: ${data.description}<br>
+Address: ${data.address}<br>
+Time Elapsed: <span class="timer">${m}:${s}</span><br>
+Responding: ${data.assigned||"None"}
+<br><br>
 ${currentUser && !data.assigned ? 
-`<button onclick="acceptIncident('${id}')">Accept</button>`:""}
-
-${currentUser && data.assigned===currentUser.registration ? `
-<button onclick="updateStatus('${id}','Responding')">Responding</button>
-<button onclick="updateStatus('${id}','On Scene')">On Scene</button>
-<button onclick="updateStatus('${id}','Completed')">Completed</button>
-<button onclick="updateStatus('${id}','Busy')">Busy</button>
-`:""}
-
-${data.status==="Completed" && !data.report && data.assigned===currentUser?.registration ? `
-<textarea id="report${id}" placeholder="Write Report"></textarea>
-<button onclick="submitReport('${id}')">Submit Report</button>
-`:""}
-
+`<button onclick="acceptIncident('${id}')">Respond</button>`:""}
 </div>`;
 });
 });
 
-/* Accept Incident */
+/* ACCEPT INCIDENT */
 window.acceptIncident=async function(id){
 await updateDoc(doc(db,"incidents",id),{
 assigned:currentUser.registration,
@@ -190,37 +181,17 @@ status:"Responding"
 });
 }
 
-/* Update Status */
-window.updateStatus=async function(id,status){
-if(status==="On Scene"){
-await updateDoc(doc(db,"incidents",id),{
-status:"On Scene",
-arrivalTime:Date.now()
-});
-}
-else{
-await updateDoc(doc(db,"incidents",id),{
-status:status
-});
-}
-}
-
-/* Submit Report */
-window.submitReport=async function(id){
-let text=document.getElementById("report"+id).value;
-await updateDoc(doc(db,"incidents",id),{
-report:text
-});
-alert("Report submitted.");
-}
-
-/* Contacts Live */
+/* LIVE ROSTER (Used in Dashboard + Roster page) */
 onSnapshot(collection(db,"units"),snapshot=>{
-const div=document.getElementById("contactList");
-div.innerHTML="";
+const dash=document.getElementById("rosterBoard");
+const roster=document.getElementById("rosterList");
+
+dash.innerHTML="";
+roster.innerHTML="";
+
 snapshot.forEach(doc=>{
 const u=doc.data();
-div.innerHTML+=`
+let card=`
 <div class="card">
 <b>${u.name}</b><br>
 Vehicle: ${u.vehicleMakeModel}<br>
@@ -228,6 +199,9 @@ Colour: ${u.vehicleColour}<br>
 Registration: ${u.registration}<br>
 Status: ${u.status}
 </div>`;
+
+dash.innerHTML+=card;
+roster.innerHTML+=card;
 });
 });
 
