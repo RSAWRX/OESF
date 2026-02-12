@@ -25,7 +25,6 @@ header{
     height:100vh;
 }
 
-/* SIDEBAR */
 .sidebar{
     width:220px;
     background:#132c4d;
@@ -50,7 +49,6 @@ header{
     background:#29598f;
 }
 
-/* MAIN */
 .main{
     flex:1;
     padding:20px;
@@ -107,76 +105,41 @@ a.mapLink{
     text-decoration:none;
 }
 
-a.mapLink:hover{
-    text-decoration:underline;
-}
-
-section{display:none;}
-
 .timer{
     color:#00e5ff;
     font-weight:bold;
     margin-top:5px;
 }
 
-.statusButtons{
-    margin-top:10px;
+section{display:none;}
+
+.statBox{
+    background:#1f3f66;
+    padding:20px;
+    margin:15px 0;
+    border-radius:8px;
+    font-size:18px;
 }
 
 /* MOBILE */
-@media (max-width: 768px){
-
-    .container{
-        flex-direction:column;
-        height:auto;
-    }
-
-    .sidebar{
-        width:100%;
-        flex-direction:row;
-        justify-content:space-around;
-        padding:8px;
-    }
-
-    .sidebar button{
-        flex:1;
-        margin:4px;
-        font-size:14px;
-        padding:10px;
-    }
-
-    .main{
-        padding:15px;
-    }
-
-    .card{
-        padding:14px;
-        font-size:15px;
-    }
-
-    button.action{
-        width:100%;
-        margin:6px 0;
-        font-size:15px;
-    }
-
-    .statusButtons{
-        display:flex;
-        flex-direction:column;
-    }
-
+@media (max-width:768px){
+    .container{flex-direction:column;height:auto;}
+    .sidebar{width:100%;flex-direction:row;}
+    .sidebar button{flex:1;margin:4px;font-size:13px;padding:10px;}
 }
 </style>
 </head>
 
 <body>
 
-<header>🚨 Incident Command Center</header>
+<header>Dispatch Command Center OESF</header>
 
 <div class="container">
+
 <div class="sidebar">
 <button onclick="show('dashboard')">Dashboard</button>
 <button onclick="show('createIncident')">Create Incident</button>
+<button onclick="show('statistics')">Statistics</button>
 </div>
 
 <div class="main">
@@ -203,138 +166,135 @@ section{display:none;}
 <button onclick="createIncident()">Create Incident</button>
 </section>
 
+<section id="statistics">
+<h2>Incident Statistics</h2>
+<div id="statsContent"></div>
+</section>
+
 </div>
 </div>
 
 <script>
 
-let incidents = [];
+let incidents=[];
 
 /* STORAGE */
-
 function saveData(){
     localStorage.setItem("incidentsData", JSON.stringify(incidents));
 }
-
 function loadData(){
-    const data = localStorage.getItem("incidentsData");
-    if(data){
-        incidents = JSON.parse(data);
-    }
+    const data=localStorage.getItem("incidentsData");
+    if(data){incidents=JSON.parse(data);}
 }
 
-/* NAVIGATION */
-
+/* NAV */
 function show(id){
-    document.querySelectorAll("section").forEach(sec=>sec.style.display="none");
+    document.querySelectorAll("section").forEach(s=>s.style.display="none");
     document.getElementById(id).style.display="block";
+    if(id==="statistics"){renderStats();}
 }
 
-/* CREATE INCIDENT */
+/* SOUND */
+function playBeep(freq=600,duration=200){
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const osc=ctx.createOscillator();
+    const gain=ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value=freq;
+    osc.start();
+    gain.gain.setValueAtTime(0.2,ctx.currentTime);
+    osc.stop(ctx.currentTime+duration/1000);
+}
 
+/* CREATE */
 function createIncident(){
-    if(!address.value || !description.value){
+    if(!address.value||!description.value){
         alert("Address and Description required");
         return;
     }
 
-    const incident = {
-        id: Date.now(),
-        address: address.value,
-        description: description.value,
-        contact: contact.value,
-        priority: priority.value,
-        status: "Active",
-        responder: null
-    };
-
-    incidents.unshift(incident);
+    incidents.unshift({
+        id:Date.now(),
+        address:address.value,
+        description:description.value,
+        contact:contact.value,
+        priority:priority.value,
+        status:"Active",
+        responder:null
+    });
 
     address.value="";
     description.value="";
     contact.value="";
+
+    playBeep(800,250); // New incident sound
 
     saveData();
     render();
     show("dashboard");
 }
 
-/* UPDATE STATUS */
-
-function updateStatus(id, status){
-    const inc = incidents.find(i=>i.id===id);
-    if(!inc) return;
+/* UPDATE */
+function updateStatus(id,status){
+    const inc=incidents.find(i=>i.id===id);
+    if(!inc)return;
 
     if(!inc.responder){
-        inc.responder = {
-            status: status,
-            start: Date.now(),
-            elapsed: 0
-        };
+        inc.responder={status:status,start:Date.now(),elapsed:0};
     }
 
-    if(status === "Standing Off" || status === "Completed"){
+    if(status==="Standing Off"||status==="Completed"){
         if(inc.responder.start){
-            inc.responder.elapsed += Date.now() - inc.responder.start;
-            inc.responder.start = null;
+            inc.responder.elapsed+=Date.now()-inc.responder.start;
+            inc.responder.start=null;
         }
-    } else {
+    }else{
         if(!inc.responder.start){
-            inc.responder.start = Date.now();
+            inc.responder.start=Date.now();
         }
     }
 
-    inc.responder.status = status;
+    inc.responder.status=status;
 
-    if(status === "Completed"){
-        inc.status = "Completed";
-    }
+    if(status==="Completed"){inc.status="Completed";}
+
+    playBeep(500,150); // Status change sound
 
     saveData();
     render();
 }
 
 /* REMOVE */
-
 function removeIncident(id){
-    incidents = incidents.filter(i=>i.id!==id);
+    incidents=incidents.filter(i=>i.id!==id);
     saveData();
     render();
 }
 
-/* TIMER FORMAT */
-
+/* TIMER */
 function formatTime(ms){
-    const total = Math.floor(ms/1000);
-    const m = Math.floor(total/60);
-    const s = total % 60;
+    const total=Math.floor(ms/1000);
+    const m=Math.floor(total/60);
+    const s=total%60;
     return `${m}m ${s}s`;
 }
 
 /* RENDER */
-
 function render(){
-    const activeDiv = document.getElementById("activeIncidents");
-    const completedDiv = document.getElementById("completedIncidents");
-
+    const activeDiv=document.getElementById("activeIncidents");
+    const completedDiv=document.getElementById("completedIncidents");
     activeDiv.innerHTML="";
     completedDiv.innerHTML="";
 
     incidents.forEach(i=>{
-
-        const mapUrl = "https://www.google.com/maps/search/?api=1&query=" 
-        + encodeURIComponent(i.address);
-
+        const mapUrl="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(i.address);
         let timerDisplay="";
         let statusText="Not Assigned";
 
         if(i.responder){
             let total=i.responder.elapsed;
-
-            if(i.responder.start){
-                total += Date.now() - i.responder.start;
-            }
-
+            if(i.responder.start){total+=Date.now()-i.responder.start;}
             timerDisplay=`<div class="timer">Time: ${formatTime(total)}</div>`;
             statusText=i.responder.status;
         }
@@ -343,40 +303,56 @@ function render(){
         <div class="card">
             <b>${i.priority}</b> -
             <a href="${mapUrl}" target="_blank" class="mapLink">${i.address}</a><br>
-
             <span class="incDesc">${i.description}</span><br>
-            Contact: ${i.contact || "N/A"}<br>
+            Contact: ${i.contact||"N/A"}<br>
             Status: ${statusText}
             ${timerDisplay}
 
-            ${i.status!=="Completed" ? `
-            <div class="statusButtons">
+            ${i.status!=="Completed"?`
+            <div>
                 <button class="action orange" onclick="updateStatus(${i.id},'Responding')">Responding</button>
                 <button class="action blue" onclick="updateStatus(${i.id},'Busy')">Busy</button>
                 <button class="action red" onclick="updateStatus(${i.id},'Standing Off')">Standing Off</button>
                 <button class="action green" onclick="updateStatus(${i.id},'Completed')">Completed</button>
-            </div>
-            ` : ""}
+            </div>`:""}
 
             <br>
             <button class="action closeBtn" onclick="removeIncident(${i.id})">Remove</button>
         </div>
         `;
 
-        if(i.status==="Completed"){
-            completedDiv.innerHTML+=card;
-        } else{
-            activeDiv.innerHTML+=card;
-        }
-
+        if(i.status==="Completed"){completedDiv.innerHTML+=card;}
+        else{activeDiv.innerHTML+=card;}
     });
 }
 
-/* AUTO TIMER */
+/* STATISTICS */
+function renderStats(){
+    const total=incidents.length;
+    const active=incidents.filter(i=>i.status==="Active").length;
+    const completed=incidents.filter(i=>i.status==="Completed").length;
+
+    let totalTime=0;
+    let count=0;
+
+    incidents.forEach(i=>{
+        if(i.status==="Completed"&&i.responder){
+            totalTime+=i.responder.elapsed;
+            count++;
+        }
+    });
+
+    const avg=count?formatTime(totalTime/count):"N/A";
+
+    document.getElementById("statsContent").innerHTML=`
+        <div class="statBox">Total Incidents: ${total}</div>
+        <div class="statBox">Active Incidents: ${active}</div>
+        <div class="statBox">Completed Incidents: ${completed}</div>
+        <div class="statBox">Average Response Time: ${avg}</div>
+    `;
+}
 
 setInterval(render,1000);
-
-/* INIT */
 
 loadData();
 show("dashboard");
