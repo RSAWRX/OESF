@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Emergency Command System</title>
+<title>Incident Command Center</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -16,46 +16,30 @@ header{background:#132c4d;padding:15px;font-size:20px}
 .card{background:#1f3f66;padding:12px;margin:10px 0;border-radius:6px}
 input,select,textarea{width:100%;padding:8px;margin:6px 0}
 button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
-.orange{background:orange}
-.blue{background:#0099ff}
+.orange{background:orange;color:white}
+.blue{background:#0099ff;color:white}
 .red{background:#cc0000;color:white}
-.green{background:green}
+.green{background:green;color:white}
 .closeBtn{background:#444;color:white}
 .timer{color:#00e5ff;font-weight:bold}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
-textarea{width:100%;margin-top:6px;padding:6px;border-radius:4px;border:none}
 </style>
 </head>
 
 <body>
 
-<header>🚨 Emergency Command Center</header>
+<header>🚨 Incident Command Center</header>
 
 <div class="container">
 
 <div class="sidebar">
 <button onclick="show('dashboard')">Dashboard</button>
-<button id="createBtn" onclick="show('createIncident')">Create Incident</button>
-<button onclick="show('roster')">OnDuty Roster</button>
-<button onclick="show('archive')">Archive</button>
-<button onclick="logout()">Logout</button>
+<button onclick="show('createIncident')">Create Incident</button>
 </div>
 
 <div class="main">
 
-<section id="login">
-<h2>Login</h2>
-<select id="role">
-<option value="responder">Responder</option>
-<option value="dispatcher">Dispatcher</option>
-</select>
-<input id="name" placeholder="Name">
-<input id="vehicle" placeholder="Vehicle (Responder only)">
-<input id="registration" placeholder="Registration (Responder only)">
-<button onclick="login()">Login</button>
-</section>
-
-<section id="dashboard" style="display:none">
+<section id="dashboard" style="display:block">
 <h2>Active Incidents</h2>
 <div id="incidentBoard"></div>
 </section>
@@ -71,251 +55,78 @@ textarea{width:100%;margin-top:6px;padding:6px;border-radius:4px;border:none}
 <option>High</option>
 <option>Critical</option>
 </select>
-<button onclick="createIncident()">Create</button>
-</section>
-
-<section id="roster" style="display:none">
-<h2>OnDuty Roster</h2>
-<div id="rosterBoard"></div>
-</section>
-
-<section id="archive" style="display:none">
-<h2>Archived Incidents</h2>
-<div id="archiveBoard"></div>
+<button onclick="createIncident()">Create Incident</button>
 </section>
 
 </div>
 </div>
 
-<script type="module">
+<script>
+let incidents=[];
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, doc, getDocs, query, where, getDoc, deleteDoc }
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-/* 🔴 INSERT YOUR FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
-    authDomain: "oesf-e7a8e.firebaseapp.com",
-    projectId: "oesf-e7a8e",
-    storageBucket: "oesf-e7a8e.firebasestorage.app",
-    messagingSenderId: "844363489759",
-    appId: "1:844363489759:web:2b56fe51cc28053dbe246a"
-};
-
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
-
-let currentUser=null;
-let userDocId=null;
-let unitDocId=null;
-let incidentsCache=[];
-
-/* --- PAGE NAVIGATION --- */
-window.show=id=>{
+// Show section
+function show(id){
 document.querySelectorAll("section").forEach(s=>s.style.display="none");
 document.getElementById(id).style.display="block";
 }
 
-/* --- LOAD USER ON PAGE INIT --- */
-window.addEventListener("load", async () => {
-  const savedUser = JSON.parse(localStorage.getItem("currentUser"));
-  if (savedUser) {
-    currentUser = savedUser;
-    show("dashboard");
-    document.getElementById("createBtn").style.display = currentUser.role === "dispatcher" ? "block" : "none";
-  }
-});
-
-/* --- LOGIN --- */
-window.login = async () => {
-  if (!name.value) { alert("Enter name"); return; }
-
-  currentUser = {
-    name: name.value,
-    role: role.value
-  };
-  
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
-
-  if (role.value === "responder") {
-    if (!vehicle.value || !registration.value) { alert("Complete vehicle info"); return; }
-
-    const q = query(collection(db,"units"), where("registration","==", registration.value));
-    const snap = await getDocs(q);
-    if (!snap.empty) { alert("This responder is already signed in"); return; }
-
-    const unitRef = await addDoc(collection(db,"units"),{
-      name: name.value,
-      vehicle: vehicle.value,
-      registration: registration.value,
-      status: "Available"
-    });
-    unitDocId = unitRef.id;
-  }
-
-  document.getElementById("createBtn").style.display = role.value === "dispatcher" ? "block" : "none";
-
-  show("dashboard");
-};
-
-/* --- LOGOUT --- */
-window.logout = async () => {
-  localStorage.removeItem("currentUser");
-  if(unitDocId) await deleteDoc(doc(db,"units",unitDocId));
-  location.reload();
-};
-
-/* --- CREATE INCIDENT --- */
-window.createIncident=async()=>{
-await addDoc(collection(db,"incidents"),{
+// Create incident
+function createIncident(){
+if(!address.value || !description.value){ alert("Enter address and description"); return; }
+const incident={
+id:Date.now(),
 address:address.value,
 description:description.value,
 contact:contact.value,
 priority:priority.value,
 created:Date.now(),
-responders:[],
-status:"Active",
-report:""
-});
-alert("Incident Created");
+status:"Responding"
+};
+incidents.unshift(incident); // newest first
+renderIncidents();
+address.value=""; description.value=""; contact.value="";
 show("dashboard");
 }
 
-/* --- UPDATE STATUS --- */
-window.updateStatus=async(incidentId,status)=>{
-
-const ref=doc(db,"incidents",incidentId);
-const snap=await getDoc(ref);
-let data=snap.data();
-let responders=data.responders||[];
-
-let existing=responders.find(r=>r.unitId===unitDocId);
-
-if(status==="Completed"){
-if(!existing){ alert("Must mark Responding/On Scene first"); return; }
-responders=responders.map(r=>r.unitId===unitDocId?{...r,status}:r);
-await updateDoc(doc(db,"units",unitDocId),{status:"Available"});
-}else{
-if(!existing){
-responders.push({unitId:unitDocId,name:currentUser.name,status});
-}else{
-responders=responders.map(r=>r.unitId===unitDocId?{...r,status}:r);
-}
-await updateDoc(doc(db,"units",unitDocId),{status});
+// Update status
+function updateStatus(id,status){
+const inc=incidents.find(i=>i.id===id);
+if(inc){ inc.status=status; renderIncidents(); }
 }
 
-await updateDoc(ref,{responders});
+// Remove incident
+function cancelIncident(id){
+incidents=incidents.filter(i=>i.id!==id);
+renderIncidents();
 }
 
-/* --- WRITE REPORT --- */
-window.writeReport=async(incidentId)=>{
-const r=prompt("Write your incident report:");
-if(r!==null){
-await updateDoc(doc(db,"incidents",incidentId),{report:r});
-alert("Report saved");
-}
-}
-
-/* --- CLOSE INCIDENT (Dispatcher Only) --- */
-window.closeIncident=async(id)=>{
-const ref=doc(db,"incidents",id);
-const snap=await getDoc(ref);
-const data=snap.data();
-await addDoc(collection(db,"archivedIncidents"),data);
-await deleteDoc(ref);
-}
-
-/* --- CANCEL INCIDENT (Dispatcher Only) --- */
-window.cancelIncident=async(id)=>{
-if(confirm("Cancel this incident?")){
-await deleteDoc(doc(db,"incidents",id));
-}
-}
-
-/* --- LIVE INCIDENTS --- */
-onSnapshot(collection(db,"incidents"),snap=>{
-incidentsCache=[];
-snap.forEach(d=>incidentsCache.push({id:d.id,...d.data()}));
-incidentsCache.sort((a,b)=>b.created-a.created); // newest first
-render();
-});
-
-function render(){
+// Render incidents
+function renderIncidents(){
 const div=document.getElementById("incidentBoard");
 div.innerHTML="";
-
-incidentsCache.forEach(i=>{
-
+incidents.forEach(i=>{
 let diff=Math.floor((Date.now()-i.created)/1000);
 let m=Math.floor(diff/60).toString().padStart(2,"0");
 let s=(diff%60).toString().padStart(2,"0");
 
-let respondersHTML="";
-(i.responders||[]).forEach(r=>{
-respondersHTML+=`<div>${r.name} - ${r.status}</div>`;
-});
-
-let reportBtn="";
-if(currentUser?.role==="responder"){
-let completed = i.responders?.find(r=>r.unitId===unitDocId)?.status==="Completed";
-if(completed) reportBtn=`<button class="green" onclick="writeReport('${i.id}')">Write Report</button>`;
-}
-
 div.innerHTML+=`
 <div class="card">
-<b>${i.priority}</b><br>
+<b>${i.priority}</b> - ${i.address}<br>
 ${i.description}<br>
-${i.address}<br>
 Contact: ${i.contact}<br>
 Time: <span class="timer">${m}:${s}</span><br>
-${respondersHTML}
-${currentUser?.role==="responder"?`
-<button class="orange" onclick="updateStatus('${i.id}','Responding')">Responding</button>
-<button class="blue" onclick="updateStatus('${i.id}','Standing Off')">Standing Off</button>
-<button class="red" onclick="updateStatus('${i.id}','Busy')">Busy</button>
-<button class="green" onclick="updateStatus('${i.id}','Completed')">Completed</button>
-${reportBtn}
-`:""}
-${currentUser?.role==="dispatcher"?`
-<button class="closeBtn" onclick="closeIncident('${i.id}')">Close Incident</button>
-<button class="red" onclick="cancelIncident('${i.id}')">Cancel Incident</button>
-`:""}
+Status: <b>${i.status}</b><br>
+<button class="orange" onclick="updateStatus(${i.id},'Responding')">Responding</button>
+<button class="blue" onclick="updateStatus(${i.id},'Standing Off')">Standing Off</button>
+<button class="red" onclick="updateStatus(${i.id},'Busy')">Busy</button>
+<button class="green" onclick="updateStatus(${i.id},'Completed')">Completed</button>
+<button class="closeBtn" onclick="cancelIncident(${i.id})">Remove</button>
 </div>`;
+});
 }
 
-/* --- LIVE ROSTER --- */
-const rosterDiv=document.getElementById("rosterBoard");
-onSnapshot(collection(db,"units"),snap=>{
-rosterDiv.innerHTML="";
-snap.forEach(d=>{
-let u=d.data();
-rosterDiv.innerHTML+=`
-<div class="card">
-${u.name}<br>
-Vehicle: ${u.vehicle}<br>
-Reg: ${u.registration}<br>
-Status: ${u.status}
-</div>`;
-});
-});
-
-/* --- ARCHIVE --- */
-const archiveDiv=document.getElementById("archiveBoard");
-onSnapshot(collection(db,"archivedIncidents"),snap=>{
-archiveDiv.innerHTML="";
-snap.forEach(d=>{
-let i=d.data();
-archiveDiv.innerHTML+=`
-<div class="card">
-<b>${i.priority}</b><br>
-${i.description}<br>
-Closed
-</div>`;
-});
-});
-
-setInterval(render,1000);
+// Update timers every second
+setInterval(renderIncidents,1000);
 
 </script>
 </body>
