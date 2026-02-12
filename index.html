@@ -1,297 +1,229 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dispatch Command Control</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.json">
 
 <style>
+:root{
+--bg:#001f3f;
+--panel:#00264d;
+--card:#003366;
+--text:white;
+}
 body{
-font-family:Arial;
-margin:0;
-background:#0b1f3a; /* Navy Blue */
-color:white;
+margin:0;font-family:Segoe UI,Arial;background:var(--bg);color:var(--text);
 }
-
-header{
-background:#1e3a5f; /* KEEP SAME */
-color:white;
-padding:15px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-font-size:18px;
+.header{
+position:sticky;top:0;display:flex;align-items:center;
+background:var(--panel);padding:10px 20px;z-index:100;
+border-bottom:2px solid #004080;
 }
-
-.container{
-padding:15px;
+.header h1{margin:0;font-size:22px;}
+.header #clock{margin-left:auto;}
+.container{display:flex;height:calc(100vh - 60px);}
+.sidebar{
+width:240px;background:var(--panel);display:flex;flex-direction:column;
 }
-
-button{
-padding:10px;
-margin:6px 6px 12px 0;
-border:none;
-border-radius:6px;
-cursor:pointer;
-font-weight:bold;
+.sidebar button{
+padding:16px;border:none;background:none;color:inherit;
+text-align:left;font-size:16px;cursor:pointer;
+border-bottom:1px solid #004080;
 }
-
-.nav-btn{background:#1e3a5f;color:white;}
-.clear-btn{background:#444;color:white;}
-
+.sidebar button:hover{background:#004080;}
+.main{flex:1;padding:20px;overflow-y:auto;}
+section{display:none;}
+section.active{display:block;}
 .card{
-background:white;
-color:black;
-padding:15px;
-margin-bottom:15px;
-border-radius:8px;
-box-shadow:0 2px 6px rgba(0,0,0,0.3);
+background:var(--card);padding:14px;border-radius:10px;margin:10px 0;
 }
-
-.description{
-color:darkred;
-font-weight:bold;
-}
-
-.status-label{
-font-weight:bold;
-}
-
-.map-link{
-display:inline-block;
-background:#e6f0ff;
-padding:6px 10px;
-border-radius:6px;
-text-decoration:none;
-margin-top:5px;
-}
-
+input,select,textarea{width:100%;padding:8px;margin:5px 0;border-radius:4px;border:none;}
+button.action{padding:10px 14px;background:#0074D9;color:white;border:none;border-radius:5px;cursor:pointer;margin-top:6px;}
+button.action:hover{background:#005fa3;}
+.status-btn{padding:6px 10px;border:none;border-radius:4px;margin:3px;color:white;cursor:pointer;}
 .Responding{background:orange;color:white;}
-.Busy{background:#ff9800;color:white;}
-.StandingOff{background:lightblue;color:black;}
-.Completed{background:#4CAF50;color:white;}
-
-@media(max-width:600px){
-button{width:100%;}
-}
+.Busy{background:yellow;color:black;}
+.StandingOff{background:#0d47a1;color:white;} /* dark blue */
+.Completed{background:green;color:white;}
+.write-report{background:white;color:black;}
+.critical{animation:blink 1s infinite;}
+@keyframes blink{0%,50%,100%{opacity:1;}25%,75%{opacity:0;}}
+.timer{font-size:20px;font-weight:bold;padding:4px 8px;border-radius:6px;display:inline-block;margin:5px 0;}
+.sev-Low{background:#2ecc71;padding:4px;border-radius:4px;}
+.sev-Medium{background:#f1c40f;color:black;padding:4px;border-radius:4px;}
+.sev-High{background:#e67e22;padding:4px;border-radius:4px;}
+.sev-Critical{background:#e74c3c;padding:4px;border-radius:4px;color:white;}
 </style>
 </head>
 <body>
 
-<header>
-<div>🚨 Dispatch Command Control</div>
-<div id="dateTime"></div>
-</header>
+<div class="header">
+<h1>Dispatch Command Control</h1>
+<div id="clock"></div>
+</div>
 
 <div class="container">
 
-<button class="nav-btn" onclick="showDashboard()">Dashboard</button>
-<button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
-<button class="nav-btn" onclick="showCompleted()">Completed Incidents</button>
-
-<div id="dashboardPage">
-<h3>Current Incidents</h3>
-<div id="activeList"></div>
+<div class="sidebar">
+<button onclick="show('dashboard')">Dashboard</button>
+<button onclick="show('createIncident')">Dispatch Incident</button>
+<button onclick="show('completedIncidents')">Completed Incidents</button>
 </div>
 
-<div id="dispatchPage" style="display:none;">
-<h3>Dispatch Incident</h3>
-<input id="address" placeholder="Address" style="width:100%;padding:8px;margin-bottom:8px;">
-<input id="description" placeholder="Description" style="width:100%;padding:8px;margin-bottom:8px;">
-<select id="priority" style="width:100%;padding:8px;margin-bottom:8px;">
-<option>Low</option>
-<option>Medium</option>
-<option>High</option>
-<option>Critical</option>
+<div class="main">
+
+<section id="dashboard">
+<h2>Current Incidents</h2>
+<div id="dashboardIncidents"></div>
+</section>
+
+<section id="createIncident">
+<h2>Dispatch Incident</h2>
+<input id="incidentAddress" placeholder="Address">
+<input id="incidentDescription" placeholder="Description">
+<select id="incidentPriority">
+<option>Low</option><option>Medium</option>
+<option>High</option><option>Critical</option>
 </select>
-<input id="cos" placeholder="COS Name" style="width:100%;padding:8px;margin-bottom:8px;">
-<button onclick="addIncident()">Create Incident</button>
-</div>
+<input id="incidentCOS" placeholder="Contact On Scene">
+<button class="action" onclick="addIncident()">Create Incident</button>
+</section>
 
-<div id="completedPage" style="display:none;">
-<h3>Completed Incidents</h3>
-<button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
+<section id="completedIncidents">
+<h2>Completed Incidents</h2>
 <div id="completedList"></div>
-</div>
+</section>
 
 </div>
+</div>
 
-<!-- AUDIO -->
-<audio id="alarmSound">
-<source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
-</audio>
+<audio id="newIncidentSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+<audio id="standingOffSound" src="https://www.soundjay.com/button/button-09.wav"></audio>
+<audio id="completedSound" src="https://www.soundjay.com/button/button-10.wav"></audio>
 
-<audio id="standOffChime">
-<source src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" type="audio/ogg">
-</audio>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"></script>
 
-<audio id="completedSound">
-<source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
-</audio>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+<script>
+// TODO: Paste your Firebase config here
 const firebaseConfig = {
- apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
+  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
     authDomain: "oesf-e7a8e.firebaseapp.com",
     projectId: "oesf-e7a8e",
     storageBucket: "oesf-e7a8e.firebasestorage.app",
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a",
     measurementId: "G-CMZHVSVG8Z"
+  // your config
 };
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const incidentsRef = collection(db,"incidents");
-const q = query(incidentsRef, orderBy("startTime","desc")); // NEWEST FIRST
-
-// PAGE NAV
-window.showDashboard=function(){
-dashboardPage.style.display="block";
-dispatchPage.style.display="none";
-completedPage.style.display="none";
-}
-window.showDispatch=function(){
-dashboardPage.style.display="none";
-dispatchPage.style.display="block";
-completedPage.style.display="none";
-}
-window.showCompleted=function(){
-dashboardPage.style.display="none";
-dispatchPage.style.display="none";
-completedPage.style.display="block";
+function show(id){
+document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
 }
 
-// ADD INCIDENT
-window.addIncident=async function(){
-await addDoc(incidentsRef,{
-address:address.value,
-description:description.value,
-priority:priority.value,
-cos:cos.value,
+function updateClock(){
+const now = new Date();
+document.getElementById("clock").innerText = now.toLocaleString();
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// Timer helper
+function formatTime(ms){
+let sec=Math.floor(ms/1000)%60;
+let min=Math.floor(ms/60000)%60;
+let hr=Math.floor(ms/3600000);
+return `${hr.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+}
+
+// Add Incident
+async function addIncident(){
+await db.collection("incidents").add({
+address:incidentAddress.value,
+description:incidentDescription.value,
+priority:incidentPriority.value,
+cos:incidentCOS.value,
 status:"Responding",
 startTime:Date.now(),
-timerStopped:false,
 totalElapsed:0,
 report:""
 });
-
-alarmSound.volume=1.0;
-alarmSound.play();
-
-if(navigator.vibrate){
-navigator.vibrate([300,150,300,150,500]);
+document.getElementById("newIncidentSound").play();
+if (navigator.vibrate){navigator.vibrate(200);}
+incidentAddress.value="";incidentDescription.value="";incidentCOS.value="";
 }
 
-showDashboard();
-}
-
-// STATUS
-window.setStatus=async function(id,status){
-await updateDoc(doc(db,"incidents",id),{status});
-}
-
-window.stopTimer=async function(id,status){
-const snap=doc(db,"incidents",id);
-await updateDoc(snap,{
-status,
-timerStopped:true,
-totalElapsed:Date.now()
-});
-}
-
-// REPORT PAGE
-window.openReport=function(id){
-const text=prompt("Write report:");
-if(text){
-updateDoc(doc(db,"incidents",id),{report:text});
-}
-}
-
-// CLEAR COMPLETED
-window.clearCompleted=async function(){
-const snapshot=await onSnapshot(q,()=>{});
-}
-
-// FORMAT TIME
-function formatTime(ms){
-let seconds=Math.floor(ms/1000);
-let h=Math.floor(seconds/3600);
-let m=Math.floor((seconds%3600)/60);
-let s=seconds%60;
-return `${h}h ${m}m ${s}s`;
-}
-
-let previousStatuses={};
-
-// REALTIME
-onSnapshot(q,(snapshot)=>{
-let activeHTML="";
-let completedHTML="";
-
+// Render incidents live
+function renderIncidents(){
+const dash = document.getElementById("dashboardIncidents");
+const comp = document.getElementById("completedList");
+db.collection("incidents").orderBy("startTime","desc")
+.onSnapshot(snapshot=>{
+dash.innerHTML=""; comp.innerHTML="";
 snapshot.forEach(docSnap=>{
-const i=docSnap.data();
-const id=docSnap.id;
-
-let elapsed=i.timerStopped?i.totalElapsed:(Date.now()-i.startTime);
-
-// SOUND TRIGGERS
-if(previousStatuses[id] && previousStatuses[id]!==i.status){
-
-if(i.status==="StandingOff"){
-standOffChime.volume=1.0;
-standOffChime.play();
-}
-
-if(i.status==="Completed"){
-completedSound.volume=1.0;
-completedSound.play();
-}
-}
-previousStatuses[id]=i.status;
-
-let card=`
-<div class="card">
-<b>${i.address}</b><br>
-<span class="description">${i.description}</span><br>
-Priority: ${i.priority}<br>
+const i = docSnap.data();
+const id = docSnap.id;
+const elapsed = i.status==="StandingOff"||i.status==="Completed"?i.totalElapsed:Date.now()-i.startTime;
+const timerText = formatTime(elapsed);
+let card = document.createElement("div");
+card.className="card";
+let priorityClass = "sev-"+i.priority;
+let descStyle = i.description?"color:darkred;font-weight:bold;":"";
+let criticalClass = i.priority==="Critical"?"critical":"";
+let html = `<b>${i.address}</b> <span class="${priorityClass} ${criticalClass}">${i.priority}</span><br>
+<b style="${descStyle}">${i.description}</b><br>
 COS: ${i.cos}<br>
-<span class="status-label">Status: ${i.status}</span><br>
-Time: ${formatTime(elapsed)}<br>
-<a class="map-link" target="_blank"
-href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}">
-Open Map</a><br>
+<span class="timer">${timerText}</span><br>
+<button class="status-btn Responding" onclick="updateStatus('${id}','Responding')">Responding</button>
+<button class="status-btn Busy" onclick="updateStatus('${id}','Busy')">Busy</button>
+<button class="status-btn StandingOff" onclick="updateStatus('${id}','StandingOff')">Standing Off</button>
+<button class="status-btn Completed" onclick="updateStatus('${id}','Completed')">Completed</button>
+<button class="write-report" onclick="openReport('${id}')">Write Report</button>
+<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address)}" target="_blank" style="background:#66b3ff;padding:3px;border-radius:3px;color:white;text-decoration:none;">Open Map</a>
 `;
-
-if(i.status!=="Completed"){
-card+=`
-<button class="Responding" onclick="setStatus('${id}','Responding')">Responding</button>
-<button class="Busy" onclick="setStatus('${id}','Busy')">Busy</button>
-<button class="StandingOff" onclick="stopTimer('${id}','StandingOff')">Standing Off</button>
-<button class="Completed" onclick="stopTimer('${id}','Completed')">Completed</button>
-<button onclick="openReport('${id}')">Write Report</button>
-</div>`;
-activeHTML+=card;
-}else{
-card+=i.report?`<hr><b>Report:</b><br>${i.report}`:"";
-card+="</div>";
-completedHTML+=card;
+card.innerHTML=html;
+if(i.status==="Completed"){comp.appendChild(card);}else{dash.appendChild(card);}
+});
+});
 }
+
+// Update status
+async function updateStatus(id,status){
+const docRef = db.collection("incidents").doc(id);
+const docSnap = await docRef.get();
+if(!docSnap.exists()) return;
+const data = docSnap.data();
+let elapsed = data.totalElapsed;
+if(status==="StandingOff"||status==="Completed"){
+elapsed += Date.now()-data.startTime;
+if(status==="StandingOff"){document.getElementById("standingOffSound").play();}
+if(status==="Completed"){document.getElementById("completedSound").play();}
+}
+await docRef.update({
+status,
+totalElapsed:elapsed,
+startTime:status==="Responding"||status==="Busy"?Date.now():data.startTime
 });
+}
 
-activeList.innerHTML=activeHTML;
-completedList.innerHTML=completedHTML;
-});
+// Write report
+function openReport(id){
+let report = prompt("Enter report for this incident:");
+if(report!==null){
+db.collection("incidents").doc(id).update({report});
+alert("Report saved.");
+show("dashboard");
+}
+}
 
-// CLOCK
-setInterval(()=>{
-dateTime.innerText=new Date().toLocaleString();
-},1000);
-
+// Initialize
+renderIncidents();
+show("dashboard");
 </script>
 </body>
 </html>
