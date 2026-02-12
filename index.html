@@ -23,6 +23,7 @@ button{border:none;padding:6px 10px;margin:3px;cursor:pointer}
 .closeBtn{background:#444;color:white}
 .timer{color:#00e5ff;font-weight:bold}
 .sectionTitle{margin-top:25px;border-bottom:1px solid #29598f;padding-bottom:5px}
+textarea{width:100%;margin-top:6px;padding:6px;border-radius:4px;border:none}
 </style>
 </head>
 
@@ -169,7 +170,8 @@ contact:contact.value,
 priority:priority.value,
 created:Date.now(),
 responders:[],
-status:"Active"
+status:"Active",
+report:""
 });
 alert("Incident Created");
 show("dashboard");
@@ -186,7 +188,10 @@ let responders=data.responders||[];
 let existing=responders.find(r=>r.unitId===unitDocId);
 
 if(status==="Completed"){
-responders=responders.filter(r=>r.unitId!==unitDocId);
+if(!existing){
+alert("You must mark Responding/On Scene first"); return;
+}
+responders=responders.map(r=>r.unitId===unitDocId?{...r,status}:r);
 await updateDoc(doc(db,"units",unitDocId),{status:"Available"});
 }else{
 if(!existing){
@@ -200,20 +205,36 @@ await updateDoc(doc(db,"units",unitDocId),{status});
 await updateDoc(ref,{responders});
 }
 
+/* WRITE REPORT */
+window.writeReport=async(incidentId)=>{
+const r=prompt("Write your incident report:");
+if(r!==null){
+await updateDoc(doc(db,"incidents",incidentId),{report:r});
+alert("Report saved");
+}
+}
+
 /* CLOSE INCIDENT (Dispatcher Only) */
 window.closeIncident=async(id)=>{
 const ref=doc(db,"incidents",id);
 const snap=await getDoc(ref);
 const data=snap.data();
-
 await addDoc(collection(db,"archivedIncidents"),data);
 await deleteDoc(ref);
+}
+
+/* CANCEL INCIDENT (Dispatcher Only) */
+window.cancelIncident=async(id)=>{
+if(confirm("Cancel this incident?")){
+await deleteDoc(doc(db,"incidents",id));
+}
 }
 
 /* LIVE INCIDENTS */
 onSnapshot(collection(db,"incidents"),snap=>{
 incidentsCache=[];
 snap.forEach(d=>incidentsCache.push({id:d.id,...d.data()}));
+incidentsCache.sort((a,b)=>b.created-a.created); // newest first
 render();
 });
 
@@ -232,6 +253,12 @@ let respondersHTML="";
 respondersHTML+=`<div>${r.name} - ${r.status}</div>`;
 });
 
+let reportBtn="";
+if(currentUser?.role==="responder"){
+let completed = i.responders?.find(r=>r.unitId===unitDocId)?.status==="Completed";
+if(completed) reportBtn=`<button class="green" onclick="writeReport('${i.id}')">Write Report</button>`;
+}
+
 div.innerHTML+=`
 <div class="card">
 <b>${i.priority}</b><br>
@@ -245,23 +272,22 @@ ${currentUser?.role==="responder"?`
 <button class="blue" onclick="updateStatus('${i.id}','Standing Off')">Standing Off</button>
 <button class="red" onclick="updateStatus('${i.id}','Busy')">Busy</button>
 <button class="green" onclick="updateStatus('${i.id}','Completed')">Completed</button>
+${reportBtn}
 `:""}
 ${currentUser?.role==="dispatcher"?`
 <button class="closeBtn" onclick="closeIncident('${i.id}')">Close Incident</button>
+<button class="red" onclick="cancelIncident('${i.id}')">Cancel Incident</button>
 `:""}
 </div>`;
-});
 }
 
-setInterval(render,1000);
-
 /* LIVE ROSTER */
+const rosterDiv=document.getElementById("rosterBoard");
 onSnapshot(collection(db,"units"),snap=>{
-const div=document.getElementById("rosterBoard");
-div.innerHTML="";
+rosterDiv.innerHTML="";
 snap.forEach(d=>{
 let u=d.data();
-div.innerHTML+=`
+rosterDiv.innerHTML+=`
 <div class="card">
 ${u.name}<br>
 Vehicle: ${u.vehicle}<br>
@@ -272,12 +298,12 @@ Status: ${u.status}
 });
 
 /* ARCHIVE */
+const archiveDiv=document.getElementById("archiveBoard");
 onSnapshot(collection(db,"archivedIncidents"),snap=>{
-const div=document.getElementById("archiveBoard");
-div.innerHTML="";
+archiveDiv.innerHTML="";
 snap.forEach(d=>{
 let i=d.data();
-div.innerHTML+=`
+archiveDiv.innerHTML+=`
 <div class="card">
 <b>${i.priority}</b><br>
 ${i.description}<br>
@@ -287,6 +313,7 @@ Closed
 });
 
 show("login");
+setInterval(render,1000);
 
 </script>
 </body>
