@@ -100,6 +100,7 @@ textarea{width:100%;}
 <button class="nav-btn" onclick="showDispatch()">Dispatch Incident</button>
 <button class="nav-btn" onclick="showCompletedPage()">Completed Incidents</button>
 <button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
+<button class="clear-btn" onclick="deleteAllIncidents()">Delete All Incidents</button>
 
 <!-- Dashboard Page -->
 <div id="dashboardPage">
@@ -128,8 +129,6 @@ textarea{width:100%;}
 <div id="completedList"></div>
 </div>
 
-</div>
-
 <!-- AUDIO -->
 <audio id="alarmSound">
 <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
@@ -146,7 +145,7 @@ textarea{width:100%;}
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // --- Firebase Config ---
 const firebaseConfig = {
@@ -263,6 +262,16 @@ deleteDoc(doc(db,"incidents",docSnap.id));
 }
 });
 });
+}
+
+// --- Delete All Incidents ---
+window.deleteAllIncidents = async function(){
+if(confirm("Are you sure you want to delete ALL incidents? This cannot be undone.")){
+const snapshot = await getDocs(incidentsRef);
+snapshot.forEach(async (docSnap)=>{
+await deleteDoc(doc(db,"incidents",docSnap.id));
+});
+}
 }
 
 // --- Format Time ---
