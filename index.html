@@ -116,10 +116,11 @@ const firebaseConfig = {
     messagingSenderId: "844363489759",
     appId: "1:844363489759:web:2b56fe51cc28053dbe246a",
     measurementId: "G-CMZHVSVG8Z"
-  // your config
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+let currentFilter = "";
 
 function show(id){
 document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
@@ -143,25 +144,25 @@ return `${hr.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}:${sec
 
 // Add Incident
 async function addIncident(){
-await db.collection("incidents").add({
+const docRef = await db.collection("incidents").add({
 address:incidentAddress.value,
 description:incidentDescription.value,
 priority:incidentPriority.value,
 cos:incidentCOS.value,
 status:"Responding",
 startTime:Date.now(),
-totalElapsed:0,
-report:""
+totalElapsed:0
 });
 document.getElementById("newIncidentSound").play();
 if (navigator.vibrate){navigator.vibrate(200);}
 incidentAddress.value="";incidentDescription.value="";incidentCOS.value="";
 }
 
-// Render incidents live
+// Render incidents
 function renderIncidents(){
 const dash = document.getElementById("dashboardIncidents");
 const comp = document.getElementById("completedList");
+dash.innerHTML=""; comp.innerHTML="";
 db.collection("incidents").orderBy("startTime","desc")
 .onSnapshot(snapshot=>{
 dash.innerHTML=""; comp.innerHTML="";
@@ -221,7 +222,6 @@ show("dashboard");
 }
 }
 
-// Initialize
 renderIncidents();
 show("dashboard");
 </script>
