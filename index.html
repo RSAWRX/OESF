@@ -70,7 +70,7 @@ margin-top:5px;
 
 .Responding{background:orange;color:white;}
 .Busy{background:yellow;color:black;}
-.StandingOff{background:#0d47a1;color:white;} /* dark blue */
+.StandingOff{background:#0d47a1;color:white;}
 .Completed{background:#4CAF50;color:white;}
 .write-report{background:white;color:black;}
 
@@ -102,13 +102,11 @@ textarea{width:100%;}
 <button class="clear-btn" onclick="clearCompleted()">Clear Completed</button>
 <button class="clear-btn" onclick="deleteAllIncidents()">Delete All Incidents</button>
 
-<!-- Dashboard Page -->
 <div id="dashboardPage">
 <h3>Active Incidents</h3>
 <div id="activeList"></div>
 </div>
 
-<!-- Dispatch Page -->
 <div id="dispatchPage" style="display:none;">
 <h3>Dispatch Incident</h3>
 <input id="address" placeholder="Address" style="width:100%;padding:8px;margin-bottom:8px;">
@@ -123,13 +121,11 @@ textarea{width:100%;}
 <button onclick="addIncident()">Create Incident</button>
 </div>
 
-<!-- Completed Incidents Page -->
 <div id="completedPage" style="display:none;">
 <h3>Completed Incidents</h3>
 <div id="completedList"></div>
 </div>
 
-<!-- AUDIO -->
 <audio id="alarmSound">
 <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
 </audio>
@@ -143,56 +139,47 @@ textarea{width:100%;}
 </audio>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, onSnapshot, updateDoc, deleteDoc, doc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-// --- Firebase Config ---
 const firebaseConfig = {
  apiKey: "AIzaSyCcbMg_BxDkvCFPvzyC_qDxr5tmb3IRhzk",
-    authDomain: "oesf-e7a8e.firebaseapp.com",
-    projectId: "oesf-e7a8e",
-    storageBucket: "oesf-e7a8e.firebasestorage.app",
-    messagingSenderId: "844363489759",
-    appId: "1:844363489759:web:2b56fe51cc28053dbe246a",
-    measurementId: "G-CMZHVSVG8Z"
+ authDomain: "oesf-e7a8e.firebaseapp.com",
+ projectId: "oesf-e7a8e",
+ storageBucket: "oesf-e7a8e.firebasestorage.app",
+ messagingSenderId: "844363489759",
+ appId: "1:844363489759:web:2b56fe51cc28053dbe246a",
+ measurementId: "G-CMZHVSVG8Z"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const incidentsRef = collection(db,"incidents");
 
-// --- Page Navigation ---
-window.showDashboard = function(){
-document.getElementById("dashboardPage").style.display="block";
-document.getElementById("dispatchPage").style.display="none";
-document.getElementById("completedPage").style.display="none";
+window.showDashboard=function(){
+dashboardPage.style.display="block";
+dispatchPage.style.display="none";
+completedPage.style.display="none";
 }
 
-window.showDispatch = function(){
-document.getElementById("dashboardPage").style.display="none";
-document.getElementById("dispatchPage").style.display="block";
-document.getElementById("completedPage").style.display="none";
+window.showDispatch=function(){
+dashboardPage.style.display="none";
+dispatchPage.style.display="block";
+completedPage.style.display="none";
 }
 
-window.showCompletedPage = function(){
-document.getElementById("dashboardPage").style.display="none";
-document.getElementById("dispatchPage").style.display="none";
-document.getElementById("completedPage").style.display="block";
+window.showCompletedPage=function(){
+dashboardPage.style.display="none";
+dispatchPage.style.display="none";
+completedPage.style.display="block";
 }
 
-// --- Add Incident ---
 window.addIncident=async function(){
-const address=document.getElementById("address").value;
-const description=document.getElementById("description").value;
-const priority=document.getElementById("priority").value;
-const cos=document.getElementById("cos").value;
-
 await addDoc(incidentsRef,{
-address,
-description,
-priority,
-cos,
+address:address.value,
+description:description.value,
+priority:priority.value,
+cos:cos.value,
 status:"No Response",
 startTime:Date.now(),
 timerStopped:false,
@@ -200,109 +187,96 @@ totalElapsed:0,
 completedTime:null,
 report:""
 });
-
-// 🔔 Alarm
-document.getElementById("alarmSound").volume=1.0;
-document.getElementById("alarmSound").play();
-
-// 📳 Vibrate mobile
+alarmSound.play();
 if(navigator.vibrate){navigator.vibrate([300,150,300,150,500]);}
-
-document.getElementById("dispatchPage").style.display="none";
 showDashboard();
 }
 
-// --- Set Status ---
-window.setStatus=async function(id,status){
-const incidentDoc = doc(db,"incidents",id);
-const snap = await incidentDoc.get();
-const data = snap.data();
-let elapsed = data.totalElapsed;
+window.setStatus=async function(id,action){
+const ref=doc(db,"incidents",id);
+const snap=await getDoc(ref);
+if(!snap.exists()) return;
+const data=snap.data();
+let elapsed=data.totalElapsed;
 
-// Map status
-let newStatus = data.status;
-if(status==="Responding") newStatus="Responding";
-if(status==="StandingOff") newStatus="Standing Off";
-if(status==="Busy") newStatus="Not Available";
-if(status==="Completed") newStatus="Completed";
-
-// Stop timer if Standing Off or Completed
-if(status==="StandingOff" || status==="Completed"){
-if(!data.timerStopped){
-elapsed += Date.now() - data.startTime;
+if(action==="Responding"){
+await updateDoc(ref,{status:"Responding"});
+return;
 }
-await updateDoc(incidentDoc,{
-status:newStatus,
+
+if(action==="Busy"){
+return;
+}
+
+if(action==="StandingOff"){
+if(!data.timerStopped){
+elapsed+=Date.now()-data.startTime;
+}
+await updateDoc(ref,{
+status:"Standing Off",
+timerStopped:true,
+totalElapsed:elapsed
+});
+standOffChime.play();
+return;
+}
+
+if(action==="Completed"){
+if(!data.timerStopped){
+elapsed+=Date.now()-data.startTime;
+}
+await updateDoc(ref,{
+status:"Completed",
 timerStopped:true,
 totalElapsed:elapsed,
-completedTime:status==="Completed"?Date.now():data.completedTime
+completedTime:Date.now()
 });
-
-// Play sounds
-if(status==="StandingOff"){document.getElementById("standOffChime").play();}
-if(status==="Completed"){document.getElementById("completedSound").play();}
-}else{
-await updateDoc(incidentDoc,{status:newStatus});
+completedSound.play();
+return;
 }
 }
 
-// --- Report Editing ---
 window.saveReport=async function(id){
-const reportText = document.getElementById("report-"+id).value;
-await updateDoc(doc(db,"incidents",id),{report:reportText});
+await updateDoc(doc(db,"incidents",id),{
+report:document.getElementById("report-"+id).value
+});
 alert("Report saved.");
 }
 
-// --- Clear Completed ---
 window.clearCompleted=async function(){
-onSnapshot(incidentsRef,(snapshot)=>{
-snapshot.forEach(docSnap=>{
-if(docSnap.data().status==="Completed"){
-deleteDoc(doc(db,"incidents",docSnap.id));
+const snapshot=await getDocs(incidentsRef);
+snapshot.forEach(async(d)=>{
+if(d.data().status==="Completed"){
+await deleteDoc(doc(db,"incidents",d.id));
 }
-});
 });
 }
 
-// --- Delete All Incidents ---
-window.deleteAllIncidents = async function(){
-if(confirm("Are you sure you want to delete ALL incidents? This cannot be undone.")){
-const snapshot = await getDocs(incidentsRef);
-snapshot.forEach(async (docSnap)=>{
-await deleteDoc(doc(db,"incidents",docSnap.id));
+window.deleteAllIncidents=async function(){
+if(confirm("Delete ALL incidents?")){
+const snapshot=await getDocs(incidentsRef);
+snapshot.forEach(async(d)=>{
+await deleteDoc(doc(db,"incidents",d.id));
 });
 }
 }
 
-// --- Format Time ---
 function formatTime(ms){
-let seconds=Math.floor(ms/1000);
-let h=Math.floor(seconds/3600);
-let m=Math.floor((seconds%3600)/60);
-let s=seconds%60;
-return `${h}h ${m}m ${s}s`;
+let s=Math.floor(ms/1000);
+let h=Math.floor(s/3600);
+let m=Math.floor((s%3600)/60);
+let sec=s%60;
+return `${h}h ${m}m ${sec}s`;
 }
 
-// --- Render Incidents Live ---
-let previousStatuses={};
 onSnapshot(incidentsRef,(snapshot)=>{
 let activeHTML="";
 let completedHTML="";
-
-// Sort newest first
-const docs = snapshot.docs.sort((a,b)=>b.data().startTime - a.data().startTime);
-
-docs.forEach(docSnap=>{
+snapshot.docs.sort((a,b)=>b.data().startTime-a.data().startTime)
+.forEach(docSnap=>{
 const i=docSnap.data();
 const id=docSnap.id;
-const elapsed=i.timerStopped?i.totalElapsed:(Date.now() - i.startTime + i.totalElapsed);
-
-// Status change sounds
-if(previousStatuses[id] && previousStatuses[id]!==i.status){
-if(i.status==="Standing Off"){document.getElementById("standOffChime").play();}
-if(i.status==="Completed"){document.getElementById("completedSound").play();}
-}
-previousStatuses[id]=i.status;
+const elapsed=i.timerStopped?i.totalElapsed:i.totalElapsed+(Date.now()-i.startTime);
 
 let card=`<div class="card">
 <b>${i.address}</b><br>
@@ -333,14 +307,12 @@ completedHTML+=card+"</div>";
 }
 });
 
-document.getElementById("activeList").innerHTML=activeHTML;
-document.getElementById("completedList").innerHTML=completedHTML;
+activeList.innerHTML=activeHTML;
+completedList.innerHTML=completedHTML;
 });
 
-// --- Live Clock ---
 setInterval(()=>{
-const now=new Date();
-document.getElementById("dateTime").innerText=now.toLocaleString();
+dateTime.innerText=new Date().toLocaleString();
 },1000);
 
 </script>
